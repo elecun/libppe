@@ -1,7 +1,7 @@
 /**
- * @file libppe.hpp
+ * @file libppecam.hpp
  * @author Byunghun Hwang (bh.hwang@iae.re.kr)
- * @brief Precision Pose Estimation Algorithm & Interface Library
+ * @brief Camera device interface library for libppe
  * @version 0.1
  * @date 2022-11-23
  * 
@@ -9,73 +9,25 @@
  * 
  */
 
-#ifndef _LIB_PPE_HPP_
-#define _LIB_PPE_HPP_
+#ifndef _LIB_PPECAM_HPP_
+#define _LIB_PPECAM_HPP_
 
-#include <vector>
+
 #include <string>
-#include "json.hpp"
 
 using namespace std;
-using namespace nlohmann;
 
-namespace libppe {
-    /**
-     * @brief type definitions
-     * 
-     */
-    #ifndef _pos2d
-    typedef struct _pos2d {
-        double x = 0.0;
-        double y = 0.0;
-    } pos2d;
-    #endif
+namespace libppecam {    
 
-    #ifndef _pos3d
-    typedef struct _pos3d {
-        double x = 0.0;
-        double y = 0.0;
-        double z = 0.0;
-    } pos3d;
-    #endif
+    bool cam_open();
+    void cam_close();
 
-    #ifndef _pos6d 
-    typedef struct _pos6d {
-        double x = 0.;
-        double y = 0.;
-        double z = 0.;
-        double R = 0.;
-        double P = 0.;
-        double Y = 0.;
-    } pos6d;
-    #endif
-
-    #ifndef _wafer_param
-    typedef struct _wafer_param {
-        double diameter_inch = 12.0;
-    } wafer_parameter;
-    #endif
-
-    #ifndef _camera_param
-    typedef struct _camera_param {
-        double fx, fy;
-        double cx, cy;
-        double dist_coeff[5] = {0.0, };
-    } camera_param;
-    #endif
-
-    /**
-     * @brief pre-defined parameters
-     * 
-     */
-    #define _CAM_ID_0   0   //Camera ID 0 : Wafer viewpoint
-    #define _CAM_ID_1   1   //Camera ID 1 : Fork viewpoint
-    
-
-    
     int set_configure(const char* config_filename);
-    std::vector<pair<double, pos6d>> estimate_pos6d_wafer(const char* source_series);
-    std::vector<pair<double, pos6d>> estimate_pos6d_effector(const char* source_series);
+
+    string cam_trigger_on(double time_limit_ms);
+    void cam_trigger_off();
+    bool is_cam_triggered();
+
 
 } /* namespace */
 
