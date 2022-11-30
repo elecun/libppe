@@ -36,6 +36,9 @@ void cleanup(int sig) {
         default:
         console::info("Cleaning up the program");
     }
+
+    libppecam::cam_trigger_off();
+    libppecam::cam_close();
         
     console::info("Successfully terminated");
     exit(EXIT_SUCCESS);
