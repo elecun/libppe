@@ -6,6 +6,8 @@
 #include <csignal>
 #include <ctime>
 #include <cxxopts.hpp>
+#include <string>
+#include <sys/mman.h>
 
 using namespace std;
 namespace console = spdlog;
@@ -70,13 +72,40 @@ void signal_set(){
 }
 
 int main(int argc, char** argv){
+    string desc = fmt::format("Ver. {}.{}.{} (built {}/{})", __MAJOR__, __MINOR__, __REV__, __DATE__, __TIME__);
+    cxxopts::Options options("OpenEdge Framework Engine", desc.c_str());
+    options.add_options()
+        ("c,config", "Application start with configuration file(*.conf)", cxxopts::value<string>())
+        ("h,help", "Print usage");
+
+    auto optval = options.parse(argc, argv);
+    if(optval.count("help")){
+        std::cout << options.help() << std::endl;
+        exit(EXIT_SUCCESS);
+    }
+
     console::stdout_color_st("console");
     signal_set();
 
-    if(!libppecam::set_configure("default.config")){
-        if(libppecam::cam_open()){
+    mlockall(MCL_CURRENT|MCL_FUTURE); //avoid memory swaping
 
+    string _config {""};
+    if(optval.count("config")){
+        _config = optval["config"].as<string>();
+    }
+
+    try{
+        if(!_config.empty()){
+            if(!libppecam::set_configure(_config.c_str())){
+                if(libppecam::cam_open()){
+                    string saved = libppecam::cam_trigger_on(1000);
+                    console::info("images saved in {}", saved);
+                }
+            }
         }
+    }
+    catch(const std::exception& e){
+        console::error("Exception : {}", e.what());
     }
 
     return EXIT_SUCCESS;
