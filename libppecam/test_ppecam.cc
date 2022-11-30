@@ -5,6 +5,7 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include <csignal>
 #include <ctime>
+#include <cxxopts.hpp>
 
 using namespace std;
 namespace console = spdlog;
@@ -77,8 +78,6 @@ int main(int argc, char** argv){
 
         }
     }
-
-    libppecam::cam_close();
 
     return EXIT_SUCCESS;
 }

@@ -3,11 +3,18 @@
 #include "libppecam.hpp"
 #include "json.hpp"
 
+#include <opencv2/core/mat.hpp>
+#include <opencv2/videoio.hpp>
+
 using namespace nlohmann;
 
 namespace libppecam {
 
+    cv::VideoCapture* _camera = nullptr;
+
+    //for configuration
     static string _config_filename = "";
+    json _config;
 
     /**
      * @brief runner function for loop sequence
@@ -26,6 +33,7 @@ namespace libppecam {
     }
 
     int set_configure(const char* config_filename){
+        
         return 0;
     }
 
