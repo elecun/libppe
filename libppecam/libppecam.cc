@@ -87,21 +87,32 @@ namespace libppecam {
                 cout << "camera successfully opened : " << _cam_w_vid << endl;
 
                 // grab sample image
-                for(int i=0;i<50;i++){
+                vector<cv::Mat> raw_container;
+                raw_container.reserve(20);
+
+                for(int i=0;i<20;i++){
                     auto total_start = chrono::steady_clock::now();
-                    vector<cv::Mat> raw_container;
-                    raw_container.reserve(50);
                     cv::Mat raw;
                     if(_camera_w->grab()){
                         _camera_w->retrieve(raw);
                         raw_container.emplace_back(raw);
-                        //cv::imwrite("./cam_w.png", raw);
                     }
                     auto total_end = chrono::steady_clock::now();
                     float total_fps = 1000.0 / chrono::duration_cast<chrono::milliseconds>(total_end - total_start).count();
 
                     cout << "FPS : " << total_fps << endl;
                 }
+
+                cout << "saving images..." << endl;
+                for(auto image:raw_container){
+                    static int index = 0;
+                    string filename = "./cam_w_";
+                    filename.append(std::to_string(index));
+                    filename.append(".png");
+                    cv::imwrite(filename, image);
+                    index++;
+                }
+                cout << raw_container.size() << " images saved." << endl;
             }
             else {
                 cout << "camera cannot be opened. vid : " << _cam_w_vid << endl;
