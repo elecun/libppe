@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "memory": "cpp",
+        "stop_token": "cpp",
+        "condition_variable": "cpp"
+    }
+}

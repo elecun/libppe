@@ -72,8 +72,8 @@ void signal_set(){
 }
 
 int main(int argc, char** argv){
-    string desc = fmt::format("Ver. {}.{}.{} (built {}/{})", __MAJOR__, __MINOR__, __REV__, __DATE__, __TIME__);
-    cxxopts::Options options("OpenEdge Framework Engine", desc.c_str());
+
+    cxxopts::Options options("TEST program for libppecam library");
     options.add_options()
         ("c,config", "Application start with configuration file(*.conf)", cxxopts::value<string>())
         ("h,help", "Print usage");
@@ -89,6 +89,8 @@ int main(int argc, char** argv){
 
     mlockall(MCL_CURRENT|MCL_FUTURE); //avoid memory swaping
 
+    console::info("Ver. {}.{}.{} (built {}/{})", __MAJOR__, __MINOR__, __REV__, __DATE__, __TIME__);
+
     string _config {""};
     if(optval.count("config")){
         _config = optval["config"].as<string>();
@@ -97,9 +99,12 @@ int main(int argc, char** argv){
     try{
         if(!_config.empty()){
             if(!libppecam::set_configure(_config.c_str())){
+                console::info("load configuration file : {}", _config);
+
                 if(libppecam::cam_open()){
-                    string saved = libppecam::cam_trigger_on(1000);
-                    console::info("images saved in {}", saved);
+                //     string saved = libppecam::cam_trigger_on(1000);
+                //     console::info("images saved in {}", saved);
+                libppecam::cam_close();
                 }
             }
         }
