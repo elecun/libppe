@@ -19,6 +19,13 @@ using namespace std;
 
 namespace libfm {
 
+    /**
+     * @brief position approximation from working distance
+     * 
+     * @param wd workind distance (distance between target object and lens)
+     * @return double position value of the focus module (Newscale M3-FS)
+     */
+    double fm_pos_approx(double wd);
 
 
 } /* namespace */

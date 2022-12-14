@@ -26,7 +26,7 @@ LD_LIBRARY_PATH += -L/usr/local/lib -L./lib/armhf -L$(CURRENT_DIR)/../../lib/arm
 # OS
 ifeq ($(OS),Linux) #for Linux
 	LDFLAGS = -Wl,--export-dynamic -Wl,-rpath=$(LD_LIBRARY_PATH)
-	LDLIBS = -pthread -lrt -ldl -lm `pkg-config --cflags --libs opencv4`
+	LDLIBS = -pthread -lrt -ldl -lm
 	GTEST_LDLIBS = -lgtest
 endif
 
@@ -50,8 +50,8 @@ libfm.so : $(BUILDDIR)libfm.o
 $(BUILDDIR)libfm.o: $(CURRENT_DIR)/libfm.cc
 					   $(CC) $(CXXFLAGS) $(INCLUDE_DIR) -c $^ -o $@
 
-test_ppecam : $(BUILDDIR)test_fm.o
-			  $(CC) $(LDFLAGS) $(LD_LIBRARY_PATH) -o $(BUILDDIR)$@ $^ $(LDLIBS) -lppecam
+test_fm : $(BUILDDIR)test_fm.o
+			  $(CC) $(LDFLAGS) $(LD_LIBRARY_PATH) -o $(BUILDDIR)$@ $^ $(LDLIBS) -lfm
 $(BUILDDIR)test_fm.o: $(CURRENT_DIR)/test_fm.cc
 					   $(CC) $(CXXFLAGS) $(INCLUDE_DIR) -c $^ -o $@
 
