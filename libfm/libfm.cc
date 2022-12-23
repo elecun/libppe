@@ -34,8 +34,6 @@ namespace libfm {
       cv::Sobel(grayscale, sobel_y, CV_64F, 0, 1);
       cv::Mat sobel = cv::abs(sobel_x) + cv::abs(sobel_y);
 
-
-
       return 0.0;
    }
 
