@@ -60,6 +60,8 @@ int main(int argc, char** argv){
     cxxopts::Options options("TEST program for libfm library");
     options.add_options()
         ("w,wd", "Working Distance", cxxopts::value<double>())
+        ("i,im", "Image file path", cxxopts::value<string>())
+        ("m,fm", "Focus Measure", cxxopts::value<int>())
         ("h,help", "Print usage");
 
     auto optval = options.parse(argc, argv);
@@ -76,14 +78,29 @@ int main(int argc, char** argv){
     console::info("Ver. {}.{}.{} (built {}/{})", __MAJOR__, __MINOR__, __REV__, __DATE__, __TIME__);
 
     double _wd = 0.;
+    int _fm = 0;
+    string _im = "";
+
     if(optval.count("wd")){
         _wd = optval["wd"].as<double>();
+    }
+    if(optval.count("fm")){
+        _fm = optval["fm"].as<int>();
+    }
+    if(optval.count("im")){
+        _im = optval["im"].as<string>();
     }
 
     try{
         if(_wd!=0){
             double approx_pos = libfm::fm_pos_approx(_wd);
             console::info("Appoximated Focus Position : {}", approx_pos);
+        }
+        if(_fm!=0 && !_im.empty()){
+            if(_im.empty()){
+                console::error("Image file does not exis to process the focus quality measurement.");
+            }
+            int measure = libfm::fm_measure(_im.c_str(), _fm);
         }
         else {
             console::warn("Working distance could not be zero value.");

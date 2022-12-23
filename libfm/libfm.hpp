@@ -27,6 +27,15 @@ namespace libfm {
      */
     double fm_pos_approx(double wd);
 
+    /**
+     * @brief focus quality measure with sobel-based method
+     * 
+     * @param image_path source image file path
+     * @param roi_size size of rectangular ROI
+     * @return double focus quality value
+     */
+    double fm_measure(const char* image_path, unsigned int roi_size=300);
+
 
 } /* namespace */
 
