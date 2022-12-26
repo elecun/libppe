@@ -15,8 +15,10 @@
 
 #include <string>
 
+
 using namespace std;
 
+namespace cv { class Mat; }
 namespace libfm {
 
     /**
@@ -28,13 +30,23 @@ namespace libfm {
     double fm_pos_approx(double wd);
 
     /**
-     * @brief focus quality measure with sobel-based method
+     * @brief focus quality measure with sobel-based method from file
      * 
      * @param image_path source image file path
      * @param roi_size size of rectangular ROI
      * @return double focus quality value
      */
-    double fm_measure(const char* image_path, unsigned int roi_size=300);
+    double fm_measure_from_file(const char* image_path, unsigned int roi_size=300, bool show=false);
+
+
+    /**
+     * @brief focus quality measure with sobel-based method from memory
+     * 
+     * @param image image memory (opencv Mat class)
+     * @param roi_size size of rectangular ROI
+     * @return double focus quality value
+     */
+    double fm_measure_from_memory(cv::Mat image, unsigned int roi_size=300, bool show=false);
 
 
 } /* namespace */
