@@ -67,6 +67,7 @@ int main(int argc, char** argv){
         ("i,image", "Image file path", cxxopts::value<string>())
         ("d,device", "Device(Camera) ID", cxxopts::value<int>())
         ("r,roi", "ROI size for Focus Measure", cxxopts::value<int>())
+        ("s,show", "Show processing Image", cxxopts::value<bool>())
         ("h,help", "Print usage");
 
     auto optval = options.parse(argc, argv);
@@ -86,6 +87,7 @@ int main(int argc, char** argv){
     int _roi_size = 0;
     string _image_file = "";
     int _camid = -1;
+    bool _show = false;
 
     if(optval.count("wd")){
         _wd = optval["wd"].as<double>();
@@ -98,6 +100,9 @@ int main(int argc, char** argv){
     }
     if(optval.count("device")){
         _camid = optval["device"].as<int>();
+    }
+    if(optval.count("show")){
+        _show = optval["show"].as<bool>();
     }
 
 
@@ -126,16 +131,32 @@ int main(int argc, char** argv){
                 _camera->set(cv::CAP_PROP_FRAME_WIDTH, 1600);
                 _camera->set(cv::CAP_PROP_FRAME_HEIGHT, 1200);
                 _camera->set(cv::CAP_PROP_FPS, 50);
+                _camera->set(cv::CAP_PROP_AUTO_EXPOSURE, 1); //1=disable auto, 3=auto
+                _camera->set(cv::CAP_PROP_AUTO_WB, 0.0);
+                _camera->set(cv::CAP_PROP_EXPOSURE, 1);
 
+                console::info("Frame width : {}", _camera->get(cv::CAP_PROP_FRAME_WIDTH));
+                console::info("Frame height : {}", _camera->get(cv::CAP_PROP_FRAME_HEIGHT));
+                console::info("Auto Exposure : {}", _camera->get(cv::CAP_PROP_AUTO_EXPOSURE));
+                console::info("Auto White Balance : {}", _camera->get(cv::CAP_PROP_AUTO_WB));
+                console::info("Exposure : {}", _camera->get(cv::CAP_PROP_EXPOSURE));
+                console::info("Brightness : {}", _camera->get(cv::CAP_PROP_BRIGHTNESS));
+
+                //grab image & measure the FM
                 cv::Mat raw;
                 while(1){
                     if(_camera->grab()){
                         _camera->retrieve(raw);
                         double measure = libfm::fm_measure_from_memory(raw, 300, true);
                         console::info("Focus Quality Measure : {}", measure);
-                        if (cv::waitKey(1) == 27)
+                        if(cv::waitKey(1) == 27)
 			                break;
                     }
+                }
+
+                // close camera device
+                if(_camera){
+                    _camera->release();
                 }
             }
 
