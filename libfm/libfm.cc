@@ -4,10 +4,11 @@
 #include <cmath>
 #include <algorithm>
 
-#include <opencv2/core/mat.hpp>
+#include <opencv2/core.hpp>
 #include <opencv2/videoio.hpp>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 using namespace std;
 using namespace cv;
@@ -23,10 +24,10 @@ namespace libfm {
         return clamp(a*exp(b*wd), min_bound, max_bound);
    }
 
-   double fm_measure(const char* image_path, unsigned int roi_size=300){
-      cv::Mat image = cv::imread(image_path, CV_LOAD_IMAGE_COLOR);
+   double fm_measure(const char* image_path, unsigned int roi_size){
+      cv::Mat image = cv::imread(image_path);
       cv::Mat grayscale;
-      cv::cvtColor(image, grayscale, CV_BGR2GRAY);
+      cv::cvtColor(image, grayscale, cv::COLOR_BGR2GRAY);
 
       cv::Mat sobel_x;
       cv::Mat sobel_y;
