@@ -29,13 +29,29 @@ namespace libfm {
       cv::Mat grayscale;
       cv::cvtColor(image, grayscale, cv::COLOR_BGR2GRAY);
 
+      cv::Rect bounds(0,0,grayscale.cols,grayscale.rows);
+      cv::Rect roi(bounds.width/2-roi_size/2, bounds.height/2-roi_size/2, roi_size, roi_size);
+      cv::Mat subimage = grayscale(roi & bounds);
+
       cv::Mat sobel_x;
       cv::Mat sobel_y;
-      cv::Sobel(grayscale, sobel_x, CV_64F, 1, 0);
-      cv::Sobel(grayscale, sobel_y, CV_64F, 0, 1);
-      cv::Mat sobel = cv::abs(sobel_x) + cv::abs(sobel_y);
+      cv::Sobel(subimage, sobel_x, CV_64F, 1, 0);
+      cv::Sobel(subimage, sobel_y, CV_64F, 0, 1);
 
-      return 0.0;
+      cv::Mat scaled_sobel_x;
+      cv::convertScaleAbs(sobel_x, scaled_sobel_x);
+
+      cv::Mat scaled_sobel_y;
+      cv::convertScaleAbs(sobel_y, scaled_sobel_y);
+
+      cv::Mat sobel;
+      cv::addWeighted(scaled_sobel_x, 1, scaled_sobel_y, 1, 0, sobel);
+      
+      cv::imwrite("./fm_result.jpg", sobel);
+
+      cv::Scalar mean, std;
+      cv::meanStdDev(sobel, mean, std);
+      return (std.val[0]*std.val[0]);
    }
 
 }

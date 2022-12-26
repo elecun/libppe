@@ -26,7 +26,7 @@ LD_LIBRARY_PATH += -L/usr/local/lib -L./lib/armhf -L$(CURRENT_DIR)/../../lib/arm
 # OS
 ifeq ($(OS),Linux) #for Linux
 	LDFLAGS = -Wl,--export-dynamic -Wl,-rpath=$(LD_LIBRARY_PATH)
-	LDLIBS = -pthread -lrt -ldl -lm
+	LDLIBS = -pthread -lrt -ldl -lm `pkg-config --cflags --libs opencv4`
 	GTEST_LDLIBS = -lgtest
 endif
 
@@ -37,7 +37,7 @@ $(shell mkdir -p $(BUILDDIR))
 CXXFLAGS = -O3 -fPIC -Wall -std=c++17 -D__cplusplus=201703L
 
 #custom definitions
-CXXFLAGS += -D__MAJOR__=0 -D__MINOR__=0 -D__REV__=1
+CXXFLAGS += -D__MAJOR__=0 -D__MINOR__=0 -D__REV__=2
 RM	= rm -rf
 
 #directories

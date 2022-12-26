@@ -96,11 +96,15 @@ int main(int argc, char** argv){
             double approx_pos = libfm::fm_pos_approx(_wd);
             console::info("Appoximated Focus Position : {}", approx_pos);
         }
+        
         if(_fm!=0 && !_im.empty()){
+            console::info("File path : {}", _im);
+            console::info("ROI size : {}", _fm);
             if(_im.empty()){
                 console::error("Image file does not exis to process the focus quality measurement.");
             }
-            int measure = libfm::fm_measure(_im.c_str(), _fm);
+            double measure = libfm::fm_measure(_im.c_str(), _fm);
+            console::info("Focus Quality Measure : {}", measure);
         }
         else {
             console::warn("Working distance could not be zero value.");
