@@ -1,10 +1,13 @@
 
 
-#include "libppe2d.hpp"
+#include "libppe.hpp"
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include <csignal>
 #include <ctime>
+#include <cxxopts.hpp>
+#include <string>
+#include <sys/mman.h>
 
 using namespace std;
 namespace console = spdlog;
@@ -66,12 +69,48 @@ void signal_set(){
 }
 
 int main(int argc, char** argv){
+
+    cxxopts::Options options("TEST program for libppe library");
+    options.add_options()
+        ("c,config", "Application start with configuration file(*.conf)", cxxopts::value<string>())
+        ("i,image", "Image file(*.png)", cxxopts::value<string>())
+        ("h,help", "Print usage");
+
+    auto optval = options.parse(argc, argv);
+    if(optval.count("help")){
+        std::cout << options.help() << std::endl;
+        exit(EXIT_SUCCESS);
+    }
+
     console::stdout_color_st("console");
     signal_set();
 
-    vector<pair<double, libppe2d::pos2d>> result = libppe2d::compute_markers_ppe("test.avi");
-    console::info("result : {}", result.size());
-    console::error("Camera device cannot be opened.");
+    mlockall(MCL_CURRENT|MCL_FUTURE); //avoid memory swaping
+    console::info("Ver. {}.{}.{} (built {}/{})", __MAJOR__, __MINOR__, __REV__, __DATE__, __TIME__);
+
+    string _config {""};
+    string _imagefile ("");
+    if(optval.count("config")){
+        _config = optval["config"].as<string>();
+    }
+    if(optval.count("image")){
+        _imagefile = optval["image"].as<string>();
+    }
+
+    try{
+        if(!_config.empty()){
+            if(!libppe::set_configure(_config.c_str())){
+                console::info("load configuration file : {}", _config);
+
+                if(!_imagefile.empty()){
+                    vector<pair<double, libppe::pos6d>> result = libppe::estimate_pos6d_wafer(_imagefile.c_str());
+                }
+            }
+        }
+    }
+    catch(const std::exception& e){
+        console::error("Exception : {}", e.what());
+    }
 
     return EXIT_SUCCESS;
 }

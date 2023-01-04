@@ -1,7 +1,7 @@
 
-#include "libppe2d.hpp"
+#include "libppe.hpp"
 
-namespace libppe2d {
+namespace libppe {
 
     std::vector<pair<double, pos2d>> compute_markers_ppe(const char* video_filename){
         return vector<pair<double, pos2d>>();

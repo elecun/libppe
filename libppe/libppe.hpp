@@ -15,6 +15,7 @@
 #include <vector>
 #include <string>
 #include "json.hpp"
+#include <opencv2/core/mat.hpp>
 
 using namespace std;
 using namespace nlohmann;
@@ -74,7 +75,23 @@ namespace libppe {
 
     
     int set_configure(const char* config_filename);
-    std::vector<pair<double, pos6d>> estimate_pos6d_wafer(const char* source_series);
+
+    /**
+     * @brief estimate the wafer pose from source directory
+     * 
+     * @param source_directory source directory path
+     * @return std::vector<pair<double, pos6d>> coordinates
+     */
+    std::vector<pair<double, pos6d>> estimate_pos6d_wafer(const char* source_directory);
+    std::vector<pair<double, pos6d>> estimate_pos6d_wafer(const char* image_file);
+    std::vector<pair<double, pos6d>> estimate_pos6d_wafer(const cv::Mat image);
+
+    /**
+     * @brief estimate the effector pose from source directory
+     * 
+     * @param source_series 
+     * @return std::vector<pair<double, pos6d>> 
+     */
     std::vector<pair<double, pos6d>> estimate_pos6d_effector(const char* source_series);
 
 } /* namespace */
