@@ -74,49 +74,98 @@ namespace libppe {
         return 0;
     }
 
-    std::vector<pair<double, pos6d>> estimate_pos6d_wafer(const char* source_directory);
-    std::vector<pair<double, pos6d>> estimate_pos6d_wafer(const char* image_file){
+    pos6d estimate_wafer_s(const char* image_file){
+        pos6d _result;
+
         //1. load image file calibrated
         if(!util::exist(image_file)){
             cout << "Could not find the file " << image_file << endl;
-            return vector<pair<double, pos6d>>();
+            return _result;
         }
-
-        std::vector<pair<double, pos6d>> _results;
 
         cv::Mat image = cv::imread(image_file);
         cv::Mat out = image.clone();
         cv::Mat grayscale;
-        cv::cvtColor(image, grayscale, cv::COLOR_BGR2GRAY);
+        if(image.channels()!=1){
+            cv::cvtColor(image, grayscale, cv::COLOR_BGR2GRAY);
+        }
 
-        //2. marker detection
-        cv::Mat aruco_marker;
         cv::Ptr<cv::aruco::Dictionary> dict = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_250);
         cv::Ptr<cv::aruco::DetectorParameters> parameters = cv::aruco::DetectorParameters::create();
-        vector<vector<cv::Point2f>> markerCorners, rejectedCandidates;
-        vector<int> markerIds;
-        cv::aruco::detectMarkers(grayscale, dict, markerCorners, markerIds, parameters, rejectedCandidates);
+        vector<vector<cv::Point2f>> marker_corners, rejected_candidates;
+        vector<int> marker_ids;
+        cv::aruco::detectMarkers(grayscale, dict, marker_corners, marker_ids, parameters, rejected_candidates);
 
-        cout << "detected marker size : " << markerIds.size() << endl;
-
-        //3. compute coordinate
-        if(markerIds.size()>0) {
+        if(marker_ids.size()>0) {
             std::vector<cv::Vec3d> rvecs, tvecs;
-            cv::aruco::estimatePoseSingleMarkers(markerCorners, 0.04, _camera_matrix, _distortion_coeff, rvecs, tvecs);
+            cv::aruco::estimatePoseSingleMarkers(marker_corners, 0.04, _camera_matrix, _distortion_coeff, rvecs, tvecs);
 
             //3.2. draw markers
-            for(unsigned int i=0; i<markerIds.size(); i++){
+            for(unsigned int i=0; i<marker_ids.size(); i++){
                 cv::aruco::drawAxis(out, _camera_matrix, _distortion_coeff, rvecs[i], tvecs[i], 0.01);
-                cout << "id : " << markerIds[i] << endl; 
+                cout << "id : " << marker_ids[i] << endl; 
                 cout << "tvec : " << tvecs[i][0] << "\t" << tvecs[i][1] << "\t" << tvecs[i][2] << endl;
                 cout << "rvec : " << rvecs[i][0] << "\t" << rvecs[i][1] << "\t" << rvecs[i][2] << endl;
             }
-            cv::imwrite("marker_out.png", out);
+            //cv::imwrite("marker_out.png", out);
+        }
+
+        return _result;
+    }
+
+    pos6d estimate_wafer_s(const cv::Mat image){
+        pos6d _result;
+        if(image.empty()){
+            cout << "image has no data" << endl;
+            return _result;
+        }
+
+        cv::Mat out = image.clone();
+        cv::Mat grayscale;
+        if(image.channels()!=1){
+            cv::cvtColor(image, grayscale, cv::COLOR_BGR2GRAY);
+        }
+
+        cv::Ptr<cv::aruco::Dictionary> dict = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_250);
+        cv::Ptr<cv::aruco::DetectorParameters> parameters = cv::aruco::DetectorParameters::create();
+        vector<vector<cv::Point2f>> marker_corners, rejected_candidates;
+        vector<int> marker_ids;
+        cv::aruco::detectMarkers(grayscale, dict, marker_corners, marker_ids, parameters, rejected_candidates);
+
+        if(marker_ids.size()>0) {
+            std::vector<cv::Vec3d> rvecs, tvecs;
+            cv::aruco::estimatePoseSingleMarkers(marker_corners, 0.04, _camera_matrix, _distortion_coeff, rvecs, tvecs);
+
+            //3.2. draw markers
+            for(unsigned int i=0; i<marker_ids.size(); i++){
+                cv::aruco::drawAxis(out, _camera_matrix, _distortion_coeff, rvecs[i], tvecs[i], 0.01);
+                cout << "id : " << marker_ids[i] << endl; 
+                cout << "tvec : " << tvecs[i][0] << "\t" << tvecs[i][1] << "\t" << tvecs[i][2] << endl;
+                cout << "rvec : " << rvecs[i][0] << "\t" << rvecs[i][1] << "\t" << rvecs[i][2] << endl;
+            }
+            //cv::imwrite("marker_out.png", out);
+        }
+
+        return _result;
+    }
+
+    vector<pos6d> estimate_wafer_m(const vector<string> image_files){
+        vector<pos6d> _results;
+
+        for(auto& image_file : image_files){
+            pos6d result = estimate_wafer_s(image_file.c_str());
         }
 
         return _results;
     }
 
-    std::vector<pair<double, pos6d>> estimate_pos6d_wafer(const cv::Mat image);
+    vector<pos6d> estimate_wafer_m(const vector<cv::Mat> images){
+        vector<pos6d> _results;
+        for(auto& image : images){
+            pos6d result = estimate_wafer_s(image);
+        }
+
+        return _results;
+    }
 
 }
