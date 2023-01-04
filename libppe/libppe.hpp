@@ -77,14 +77,6 @@ namespace libppe {
     
     int set_configure(const char* config_filename);
 
-    /**
-     * @brief estimate the wafer pose from source directory
-     * 
-     * @param source_directory source directory path
-     * @return std::vector<pair<double, pos6d>> coordinates
-     */
-    vector<pair<double, pos6d>> estimate_wafer_dir(const char* source_directory);
-
     vector<pos6d> estimate_wafer_m(const vector<string> image_files);
     vector<pos6d> estimate_wafer_m(const vector<cv::Mat> images);
 
