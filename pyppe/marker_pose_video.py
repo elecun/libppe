@@ -8,37 +8,36 @@ from cv2 import COLOR_RGB2GRAY
 import warnings
 warnings.filterwarnings('ignore')
 
-video_low = cv2.VideoCapture('./video/100_1280_960.avi')
-video_high = cv2.VideoCapture('./video/100_1600_1200.avi')
-
-w_low  = int(video_low.get(cv2.CAP_PROP_FRAME_WIDTH))
-h_low = int(video_low.get(cv2.CAP_PROP_FRAME_HEIGHT))
-fps_low = video_low.get(cv2.CAP_PROP_FPS)
-frames_low = int(video_low.get(cv2.CAP_PROP_FRAME_COUNT))
-print("> low resolution video info : ({},{}@{}), {} frames".format(w_low, h_low, fps_low, frames_low))
-
-w_high  = int(video_high.get(cv2.CAP_PROP_FRAME_WIDTH))
-h_high = int(video_high.get(cv2.CAP_PROP_FRAME_HEIGHT))
-fps_high = video_high.get(cv2.CAP_PROP_FPS)
-frames_high = int(video_high.get(cv2.CAP_PROP_FRAME_COUNT))
-print("> high resolution video info : ({},{}@{}), {} frames".format(w_high, h_high, fps_high, frames_high))
-
-
 mtx = np.matrix([[2517.792, 0., 814.045],[0., 2514.767, 567.330],[0., 0., 1.]])
 dist = np.matrix([[-0.361044, 0.154482, 0.000808, 0.000033, 0.]])
-newcameramtx_low, roi_low = cv2.getOptimalNewCameraMatrix(mtx, dist, (w_low,h_low), 0, (w_low,h_low))
-newcameramtx_high, roi_high = cv2.getOptimalNewCameraMatrix(mtx, dist, (w_low,h_high), 0, (w_low,h_high))
+
+# video = cv2.VideoCapture('./video/100_1280_960.avi')
+# w_low  = int(video_low.get(cv2.CAP_PROP_FRAME_WIDTH))
+# h_low = int(video_low.get(cv2.CAP_PROP_FRAME_HEIGHT))
+# fps_low = video_low.get(cv2.CAP_PROP_FPS)
+# frames_low = int(video_low.get(cv2.CAP_PROP_FRAME_COUNT))
+# print("> low resolution video info : ({},{}@{}), {} frames".format(w_low, h_low, fps_low, frames_low))
+# newcameramtx, roi_low = cv2.getOptimalNewCameraMatrix(mtx, dist, (w_low,h_low), 0, (w_low,h_low))
+
+video = cv2.VideoCapture('./video/100_1600_1200.avi')
+w_high  = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+h_high = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+fps_high = video.get(cv2.CAP_PROP_FPS)
+frames_high = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+print("> high resolution video info : ({},{}@{}), {} frames".format(w_high, h_high, fps_high, frames_high))
+newcameramtx, roi_high = cv2.getOptimalNewCameraMatrix(mtx, dist, (w_high,h_high), 0, (w_high,h_high))
 
 markerdict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
 markerparams = cv2.aruco.DetectorParameters_create()
 
 # for video-1 (1280_960 resolution)
-if video_low.isOpened():
+if video.isOpened():
     while True:
-        ret, frame = video_low.read()
+        ret, frame = video.read()
         if ret == True:
-            frame_undist = cv2.undistort(frame, mtx, dist, None, newcameramtx_low)
+            frame_undist = cv2.undistort(frame, mtx, dist, None, newcameramtx)
             gray = cv2.cvtColor(frame_undist, cv2.COLOR_BGR2GRAY)
+            _, gray = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
             corners, ids, rejected = cv2.aruco.detectMarkers(gray, markerdict, parameters=markerparams)
 
@@ -46,7 +45,7 @@ if video_low.isOpened():
                 for i in range(0, len(ids)):
                     rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[i], 0.04, mtx, dist)
                     
-                    if ids[i] == 32:
+                    if ids[i] == 102:
                         print("{}\tX : {}\tY : {}\tZ : {}".format(ids[i], tvec.reshape(-1)[0]*100, tvec.reshape(-1)[1]*100, tvec.reshape(-1)[2]*100))
 
                     (topLeft, topRight, bottomRight, bottomLeft) = corners[i].reshape((4,2))
@@ -73,4 +72,4 @@ if video_low.isOpened():
         else:
             break
     
-video_low.release()
+video.release()
