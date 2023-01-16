@@ -39,6 +39,8 @@ if video.isOpened():
                     
                     if ids[i] == 102:
                         print("{}\tX : {}\tY : {}\tZ : {}".format(ids[i], tvec.reshape(-1)[0]*100, tvec.reshape(-1)[1]*100, tvec.reshape(-1)[2]*100))
+                        print(rvec)
+                        break
 
                     (topLeft, topRight, bottomRight, bottomLeft) = corners[i].reshape((4,2))
                     topRight = (int(topRight[0]), int(topRight[1]))
@@ -55,11 +57,11 @@ if video.isOpened():
                     #cv2.putText(frame_undist, str(ids[i]),(topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
             
 
-            cv2.imshow("Detected Marker",frame_undist)
-            key = cv2.waitKey(1)
-            if key == 27:
-                cv2.destroyAllWindows()
-                break
+            # cv2.imshow("Detected Marker",frame_undist)
+            # key = cv2.waitKey(1)
+            # if key == 27:
+            #     cv2.destroyAllWindows()
+            #     break
             
         else:
             break
