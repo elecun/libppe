@@ -11,7 +11,7 @@ warnings.filterwarnings('ignore')
 mtx = np.matrix([[2517.792, 0., 814.045],[0., 2514.767, 567.330],[0., 0., 1.]])
 dist = np.matrix([[-0.361044, 0.154482, 0.000808, 0.000033, 0.]])
 
-video = cv2.VideoCapture('./video/test.avi')
+video = cv2.VideoCapture('./video/test.mp4')
 w  = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
 h = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
 fps = video.get(cv2.CAP_PROP_FPS)
@@ -21,6 +21,7 @@ newcameramtx, roi_high = cv2.getOptimalNewCameraMatrix(mtx, dist, (w,h), 0, (w,h
 
 markerdict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
 markerparams = cv2.aruco.DetectorParameters_create()
+markerparams.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX #marker detection refinement
 
 marker_pos = {
             "1":[-40.0, 140.0],
