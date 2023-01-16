@@ -11,7 +11,7 @@ warnings.filterwarnings('ignore')
 mtx = np.matrix([[2517.792, 0., 814.045],[0., 2514.767, 567.330],[0., 0., 1.]])
 dist = np.matrix([[-0.361044, 0.154482, 0.000808, 0.000033, 0.]])
 
-video = cv2.VideoCapture('./video/140_1600.avi')
+video = cv2.VideoCapture('./video/test.avi')
 w  = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
 h = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
 fps = video.get(cv2.CAP_PROP_FPS)
@@ -29,15 +29,14 @@ if video.isOpened():
         if ret == True:
             frame_undist = cv2.undistort(frame, mtx, dist, None, newcameramtx)
             gray = cv2.cvtColor(frame_undist, cv2.COLOR_BGR2GRAY)
-            _, gray = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
             corners, ids, rejected = cv2.aruco.detectMarkers(gray, markerdict, parameters=markerparams)
 
-            if len(corners) > 0:
+            if len(corners) > 2:
                 for i in range(0, len(ids)):
                     rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[i], 0.04, mtx, dist)
                     
-                    if ids[i] == 102:
+                    if ids[i] == 9:
                         print("{}\tX : {}\tY : {}\tZ : {}".format(ids[i], tvec.reshape(-1)[0]*100, tvec.reshape(-1)[1]*100, tvec.reshape(-1)[2]*100))
                         print(rvec)
                         break
@@ -57,11 +56,11 @@ if video.isOpened():
                     #cv2.putText(frame_undist, str(ids[i]),(topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
             
 
-            # cv2.imshow("Detected Marker",frame_undist)
-            # key = cv2.waitKey(1)
-            # if key == 27:
-            #     cv2.destroyAllWindows()
-            #     break
+            cv2.imshow("Detected Marker",frame_undist)
+            key = cv2.waitKey(100)
+            if key == 27:
+                cv2.destroyAllWindows()
+                break
             
         else:
             break
