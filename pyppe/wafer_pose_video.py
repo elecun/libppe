@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from cv2 import COLOR_RGB2GRAY
 import warnings
 warnings.filterwarnings('ignore')
+import argparse
 
 mtx = np.matrix([[2517.792, 0., 814.045],[0., 2514.767, 567.330],[0., 0., 1.]])
 dist = np.matrix([[-0.361044, 0.154482, 0.000808, 0.000033, 0.]])
@@ -293,3 +294,12 @@ if video.isOpened():
             break
     
 video.release()
+
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--infile', nargs='?', type=argparse.FileType('r', encoding='UTF-8'), metavar='FILE', required=True)
+    args = parser.parse_args()
+
+    print(args.infile)
