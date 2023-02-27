@@ -32,9 +32,12 @@ class wafer_estimator(estimator):
     def __init__(self, map, source) -> None:
         self.map = map
         self.source_file = source
-        self.markerdict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
-        self.markerparams = cv2.aruco.DetectorParameters_create()
+        #self.markerdict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250) # for < opencv 4.6
+        #self.markerparams = cv2.aruco.DetectorParameters_create() # for < opencv 4.6
+        self.markerdict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250) # for opencv 4.7.x (API was changed)
+        self.markerparams = cv2.aruco.DetectorParameters() # for opencv 4.7.x
         self.markerparams.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX #marker detection refinement
+        self.markerdetector = cv2.aruco.ArucoDetector(self.markerdict, self.markerparams)
 
     def __str__(self) -> str:
         return "wafer estimator"
@@ -61,7 +64,37 @@ class wafer_estimator(estimator):
                     if ret == True:
                         _undist_frame = cv2.undistort(frame, self.mtx, self.dist, None, _newmtx)
                         _gray_frame = cv2.cvtColor(_undist_frame, cv2.COLOR_BGR2GRAY)
-                        cv2.imshow("undist image", _gray_frame)
+                        _gray_inv = cv2.bitwise_not(_gray_frame)
+                        ret, _binary = cv2.threshold(_gray_inv, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                        markerCorners, markerIds, rejectedCandidates = self.markerdetector.detectMarkers(_binary)
+                        print(markerCorners[0].tolist())
+
+                        if len(markerCorners) > 2:
+                            for i in range(0, len(markerIds)):
+                                rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(markerCorners[i], 0.04, self.mtx, self.dist)
+                                
+                                if markerIds[i] == 9:
+                                    print("{}\tX : {}\tY : {}\tZ : {}".format(markerIds[i], tvec.reshape(-1)[0]*100, tvec.reshape(-1)[1]*100, tvec.reshape(-1)[2]*100))
+                                    print(rvec)
+                                    break
+
+                                (topLeft, topRight, bottomRight, bottomLeft) = markerCorners[i].reshape((4,2))
+                                topRight = (int(topRight[0]), int(topRight[1]))
+                                bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+                                bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+                                topLeft = (int(topLeft[0]), int(topLeft[1]))
+
+                                cX = int((topLeft[0] + bottomRight[0]) / 2.0)
+                                cY = int((topLeft[1] + bottomRight[1]) / 2.0)
+                                cv2.circle(_undist_frame, (cX, cY), 4, (0, 0, 255), -1)
+
+                                cv2.aruco.drawDetectedMarkers(_undist_frame, markerCorners) 
+                                #cv2.aruco.drawFrameAxes(frame_undist, mtx, dist, rvec, tvec, 0.01) 
+                                #cv2.putText(frame_undist, str(ids[i]),(topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                        
+                        
+                        # draw corner points
+                        cv2.imshow("result", _undist_frame)
                     key = cv2.waitKey(100)
                     if key == 27:
                         cv2.destroyAllWindows()
