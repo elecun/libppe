@@ -114,7 +114,7 @@ if __name__ == '__main__':
     ax.set_zlim(0, 200) # z limit : 200mm
     cylinder = Cylinder([0, 0, 0], [0, 0, 0.775], 150) # center, normal vector(z-775um), radius(150mm)
     cylinder.plot_3d(ax, alpha=0.8)
-    cylinder.point.plot_3d(ax, s=50)
+    cylinder.point.plot_3d(ax, s=10)
     fig.show()
 
 
