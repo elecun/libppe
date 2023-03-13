@@ -10,9 +10,8 @@ warnings.filterwarnings('ignore')
 import argparse
 from abc import *
 import os
-from mpl_toolkits import mplot3d
-from mpl_toolkits.mplot3d import Axes3D
-from skspatial.objects import Sphere, Cylinder
+# from mpl_toolkits import mplot3d
+# from mpl_toolkits.mplot3d import Axes3D
 
 class estimator(metaclass=ABCMeta):
 
@@ -71,7 +70,12 @@ class wafer_estimator(estimator):
 
                         if len(markerCorners) > 2:
                             for i in range(0, len(markerIds)):
-                                rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(markerCorners[i], 0.04, self.mtx, self.dist)
+                                # for under opencv 4.7
+                                #rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(markerCorners[i], 0.04, self.mtx, self.dist)
+
+                                # for opencv 4.7
+                                objPoints = np.array([[0., 0., 0.], [1., 0., 0.], [1., 1., 0.], [0., 1., 0.]])
+                                valid, rvec, tvec = cv2.solvePnP(objPoints, markerCorners[i], self.mtx, self.dist)
                                 
                                 if markerIds[i] == 9:
                                     print("{}\tX : {}\tY : {}\tZ : {}".format(markerIds[i], tvec.reshape(-1)[0]*100, tvec.reshape(-1)[1]*100, tvec.reshape(-1)[2]*100))
@@ -109,13 +113,13 @@ if __name__ == '__main__':
     parser.add_argument('--source', nargs='?', required=True, help="input image or video file to estimate the pose")
     args = parser.parse_args()
 
-    fig = plt.figure(figsize=(10,10))
-    ax = fig.add_subplot(111, projection='3d')
-    ax.set_zlim(0, 200) # z limit : 200mm
-    cylinder = Cylinder([0, 0, 0], [0, 0, 0.775], 150) # center, normal vector(z-775um), radius(150mm)
-    cylinder.plot_3d(ax, alpha=0.8)
-    cylinder.point.plot_3d(ax, s=10)
-    fig.show()
+    # fig = plt.figure(figsize=(10,10))
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.set_zlim(0, 200) # z limit : 200mm
+    # cylinder = Cylinder([0, 0, 0], [0, 0, 0.775], 150) # center, normal vector(z-775um), radius(150mm)
+    # cylinder.plot_3d(ax, alpha=0.8)
+    # cylinder.point.plot_3d(ax, s=10)
+    # fig.show()
 
 
     if args.target == "fork" or args.target == "effector":
