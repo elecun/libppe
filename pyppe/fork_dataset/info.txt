@@ -1,0 +1,9 @@
+Each object is described with it's bounding box and one keypoints. 
+
+Annotations for each image contain:
+- coordinates of bounding boxes (each object has a bounding box, which is described with top left and bottom right corners in [x1, y1, x2, y2] format);
+- coordinates of keypoints (each object has 1 keypoints, which are described in [x, y, visibility] format).
+
+In this dataset all keypoints are visible (i.e. visibility=1).
+
+keypoint - tip

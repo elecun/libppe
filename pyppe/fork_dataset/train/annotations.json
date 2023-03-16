@@ -1,0 +1,1087 @@
+[
+  {
+    "img": "ef5c88fc-forktip_r_0.png",
+    "id": 1,
+    "kp-1": [
+      {
+        "x": 35.58661270670194,
+        "y": 60.58436089909166,
+        "width": 0.25316455696202533,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 29.597474348855563,
+        "y": 43.78947368421053,
+        "width": 26.992896606156275,
+        "height": 25.263157894736842,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 33,
+    "created_at": "2023-03-15T06:31:22.410043Z",
+    "updated_at": "2023-03-16T01:04:07.873157Z",
+    "lead_time": 109.724
+  },
+  {
+    "img": "d2b9864c-forktip_r_1.png",
+    "id": 2,
+    "kp-1": [
+      {
+        "x": 35.73093610071966,
+        "y": 60.92347662113874,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 29.597474348855563,
+        "y": 44.10526315789474,
+        "width": 26.756116811365438,
+        "height": 25.36842105263158,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 3,
+    "created_at": "2023-03-15T05:53:31.717941Z",
+    "updated_at": "2023-03-16T01:04:18.039240Z",
+    "lead_time": 21.521
+  },
+  {
+    "img": "47ceb061-forktip_r_2.png",
+    "id": 3,
+    "kp-1": [
+      {
+        "x": 35.9058130246774,
+        "y": 61.21068234769571,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 28.808208366219414,
+        "y": 44.8421052631579,
+        "width": 27.703235990528807,
+        "height": 24.63157894736842,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 4,
+    "created_at": "2023-03-15T05:53:46.140956Z",
+    "updated_at": "2023-03-16T01:04:26.632414Z",
+    "lead_time": 19.804000000000002
+  },
+  {
+    "img": "365ddf7c-forktip_r_3.png",
+    "id": 4,
+    "kp-1": [
+      {
+        "x": 36.02325556813012,
+        "y": 61.5624298613208,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 28.966061562746653,
+        "y": 43.57894736842105,
+        "width": 28.176795580110497,
+        "height": 26.842105263157894,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 5,
+    "created_at": "2023-03-15T05:54:14.849271Z",
+    "updated_at": "2023-03-16T01:04:33.379954Z",
+    "lead_time": 20.46
+  },
+  {
+    "img": "4d69b8b6-forktip_r_4.png",
+    "id": 5,
+    "kp-1": [
+      {
+        "x": 36.18697002706138,
+        "y": 61.85379566182512,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 28.7292817679558,
+        "y": 43.89473684210527,
+        "width": 27.703235990528807,
+        "height": 25.894736842105264,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 6,
+    "created_at": "2023-03-15T05:54:28.379493Z",
+    "updated_at": "2023-03-16T01:04:45.705873Z",
+    "lead_time": 23.462
+  },
+  {
+    "img": "a6c9f8d6-forktip_r_5.png",
+    "id": 6,
+    "kp-1": [
+      {
+        "x": 36.34226534347196,
+        "y": 62.21441299076855,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 28.808208366219414,
+        "y": 44.21052631578947,
+        "width": 27.22967640094712,
+        "height": 26,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 7,
+    "created_at": "2023-03-15T05:54:39.515375Z",
+    "updated_at": "2023-03-16T01:06:00.284887Z",
+    "lead_time": 20.651
+  },
+  {
+    "img": "501fdf51-forktip_r_6.png",
+    "id": 7,
+    "kp-1": [
+      {
+        "x": 36.47234867957376,
+        "y": 62.41875017551049,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 28.650355169692187,
+        "y": 43.684210526315795,
+        "width": 27.387529597474348,
+        "height": 26,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 8,
+    "created_at": "2023-03-15T05:54:54.908657Z",
+    "updated_at": "2023-03-16T01:06:08.069177Z",
+    "lead_time": 16.182000000000002
+  },
+  {
+    "img": "3e9b2279-forktip_r_7.png",
+    "id": 8,
+    "kp-1": [
+      {
+        "x": 36.63843421992085,
+        "y": 62.72586538313171,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 28.413575374901335,
+        "y": 44.10526315789474,
+        "width": 27.940015785319652,
+        "height": 26.63157894736842,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 9,
+    "created_at": "2023-03-15T05:55:06.822924Z",
+    "updated_at": "2023-03-16T01:06:14.416385Z",
+    "lead_time": 15.235
+  },
+  {
+    "img": "befca7d3-forktip_r_8.png",
+    "id": 9,
+    "kp-1": [
+      {
+        "x": 36.82365702673157,
+        "y": 63.12564030582785,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 28.571428571428573,
+        "y": 44.315789473684205,
+        "width": 27.387529597474348,
+        "height": 26.421052631578945,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 10,
+    "created_at": "2023-03-15T05:55:27.715351Z",
+    "updated_at": "2023-03-16T01:06:21.509838Z",
+    "lead_time": 28.157
+  },
+  {
+    "img": "72155e88-forktip_r_9.png",
+    "id": 10,
+    "kp-1": [
+      {
+        "x": 36.97523608510575,
+        "y": 63.34119603174232,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 27.940015785319652,
+        "y": 44.526315789473685,
+        "width": 28.176795580110497,
+        "height": 28.526315789473678,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 11,
+    "created_at": "2023-03-15T05:55:56.055851Z",
+    "updated_at": "2023-03-16T01:06:27.607405Z",
+    "lead_time": 23.808
+  },
+  {
+    "img": "a22d4aa5-forktip_r_10.png",
+    "id": 11,
+    "kp-1": [
+      {
+        "x": 37.17062527314172,
+        "y": 63.681340540841994,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 28.097868981846876,
+        "y": 45.05263157894737,
+        "width": 28.176795580110497,
+        "height": 26.842105263157894,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 12,
+    "created_at": "2023-03-15T05:56:08.686715Z",
+    "updated_at": "2023-03-16T01:06:41.118152Z",
+    "lead_time": 21.311
+  },
+  {
+    "img": "b4a49a6b-forktip_r_11.png",
+    "id": 12,
+    "kp-1": [
+      {
+        "x": 37.34770337628748,
+        "y": 63.97292155308312,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 28.097868981846876,
+        "y": 44.315789473684205,
+        "width": 27.861089187056038,
+        "height": 27.57894736842105,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 13,
+    "created_at": "2023-03-15T05:56:27.393954Z",
+    "updated_at": "2023-03-16T01:06:56.869948Z",
+    "lead_time": 22.378
+  },
+  {
+    "img": "8c66310f-forktip_r_12.png",
+    "id": 13,
+    "kp-1": [
+      {
+        "x": 37.52472696944155,
+        "y": 64.31967801914055,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 27.782162588792424,
+        "y": 43.89473684210527,
+        "width": 28.334648776637728,
+        "height": 28.631578947368414,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 14,
+    "created_at": "2023-03-15T05:56:41.233559Z",
+    "updated_at": "2023-03-16T01:07:04.873538Z",
+    "lead_time": 17.657
+  },
+  {
+    "img": "a3dd7f87-forktip_r_13.png",
+    "id": 14,
+    "kp-1": [
+      {
+        "x": 37.719456434371786,
+        "y": 64.60484870216708,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 27.782162588792424,
+        "y": 44.42105263157895,
+        "width": 28.25572217837411,
+        "height": 27.473684210526315,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 15,
+    "created_at": "2023-03-15T05:57:01.718248Z",
+    "updated_at": "2023-03-16T01:07:16.717535Z",
+    "lead_time": 20.733999999999998
+  },
+  {
+    "img": "ff4431b2-forktip_r_14.png",
+    "id": 15,
+    "kp-1": [
+      {
+        "x": 37.92778467010388,
+        "y": 64.85824428794787,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 28.097868981846876,
+        "y": 44.315789473684205,
+        "width": 27.6243093922652,
+        "height": 28.105263157894743,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 16,
+    "created_at": "2023-03-15T05:57:19.501278Z",
+    "updated_at": "2023-03-16T01:07:24.531182Z",
+    "lead_time": 22.188
+  },
+  {
+    "img": "f4954be7-forktip_r_15.png",
+    "id": 16,
+    "kp-1": [
+      {
+        "x": 38.126707786657704,
+        "y": 65.07464451380037,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 27.6243093922652,
+        "y": 44.315789473684205,
+        "width": 28.413575374901335,
+        "height": 28.8421052631579,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 17,
+    "created_at": "2023-03-15T05:57:49.072336Z",
+    "updated_at": "2023-03-16T01:07:30.427074Z",
+    "lead_time": 15.164000000000001
+  },
+  {
+    "img": "dcf82d59-forktip_r_16.png",
+    "id": 17,
+    "kp-1": [
+      {
+        "x": 38.31954938496833,
+        "y": 65.4664807654736,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 26.992896606156275,
+        "y": 44,
+        "width": 28.808208366219414,
+        "height": 29.263157894736842,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 18,
+    "created_at": "2023-03-15T05:58:00.107994Z",
+    "updated_at": "2023-03-16T01:07:37.260509Z",
+    "lead_time": 14.897
+  },
+  {
+    "img": "40f033a1-forktip_r_17.png",
+    "id": 18,
+    "kp-1": [
+      {
+        "x": 38.56395524341825,
+        "y": 65.72092088664566,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 26.756116811365438,
+        "y": 43.473684210526315,
+        "width": 28.88713496448303,
+        "height": 29.68421052631579,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 19,
+    "created_at": "2023-03-15T05:58:11.150035Z",
+    "updated_at": "2023-03-16T01:07:44.605173Z",
+    "lead_time": 15.5
+  },
+  {
+    "img": "19973678-forktip_r_18.png",
+    "id": 19,
+    "kp-1": [
+      {
+        "x": 38.742118869545095,
+        "y": 65.94035549207436,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 26.835043409629044,
+        "y": 44.21052631578947,
+        "width": 29.04498816101026,
+        "height": 29.263157894736842,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 20,
+    "created_at": "2023-03-15T05:58:21.777522Z",
+    "updated_at": "2023-03-16T01:07:51.876187Z",
+    "lead_time": 15.365
+  },
+  {
+    "img": "c759c57c-forktip_r_19.png",
+    "id": 20,
+    "kp-1": [
+      {
+        "x": 38.904620078456084,
+        "y": 66.23999433565811,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 26.835043409629044,
+        "y": 44.526315789473685,
+        "width": 28.650355169692187,
+        "height": 30.105263157894736,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 21,
+    "created_at": "2023-03-15T05:58:38.201421Z",
+    "updated_at": "2023-03-16T01:07:58.189589Z",
+    "lead_time": 18.631999999999998
+  },
+  {
+    "img": "f09ed936-forktip_r_20.png",
+    "id": 21,
+    "kp-1": [
+      {
+        "x": 39.18464342090352,
+        "y": 66.54956948658942,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 26.5982636148382,
+        "y": 44.10526315789474,
+        "width": 29.20284135753749,
+        "height": 30.105263157894736,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 22,
+    "created_at": "2023-03-15T05:58:59.571299Z",
+    "updated_at": "2023-03-16T01:08:03.635396Z",
+    "lead_time": 24.076999999999998
+  },
+  {
+    "img": "3d14c54c-forktip_r_21.png",
+    "id": 22,
+    "kp-1": [
+      {
+        "x": 39.33639990623955,
+        "y": 66.72638010366258,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 26.519337016574585,
+        "y": 44.21052631578947,
+        "width": 29.04498816101026,
+        "height": 30.63157894736842,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 23,
+    "created_at": "2023-03-15T05:59:11.462375Z",
+    "updated_at": "2023-03-16T01:08:12.279068Z",
+    "lead_time": 14.698
+  },
+  {
+    "img": "212d727c-forktip_r_22.png",
+    "id": 23,
+    "kp-1": [
+      {
+        "x": 39.57809893031433,
+        "y": 67.0106421724614,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 26.28255722178374,
+        "y": 44.315789473684205,
+        "width": 29.2817679558011,
+        "height": 30.736842105263158,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 24,
+    "created_at": "2023-03-15T05:59:20.930289Z",
+    "updated_at": "2023-03-16T01:08:19.366809Z",
+    "lead_time": 14.296999999999999
+  },
+  {
+    "img": "9832af02-forktip_r_23.png",
+    "id": 24,
+    "kp-1": [
+      {
+        "x": 39.82282125192802,
+        "y": 67.1713503687747,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 26.835043409629044,
+        "y": 44.42105263157895,
+        "width": 28.88713496448303,
+        "height": 30.63157894736842,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 25,
+    "created_at": "2023-03-15T05:59:32.660446Z",
+    "updated_at": "2023-03-16T01:08:26.766591Z",
+    "lead_time": 16.356
+  },
+  {
+    "img": "871d0d73-forktip_r_24.png",
+    "id": 25,
+    "kp-1": [
+      {
+        "x": 39.992049767844996,
+        "y": 67.45606020980632,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 26.756116811365438,
+        "y": 45.36842105263158,
+        "width": 29.04498816101026,
+        "height": 29.578947368421062,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 26,
+    "created_at": "2023-03-15T05:59:41.870580Z",
+    "updated_at": "2023-03-16T01:08:33.758553Z",
+    "lead_time": 12.399000000000001
+  },
+  {
+    "img": "55c27ad5-forktip_r_25.png",
+    "id": 26,
+    "kp-1": [
+      {
+        "x": 40.24050298816359,
+        "y": 67.6834914883006,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 26.835043409629044,
+        "y": 45.68421052631579,
+        "width": 28.650355169692187,
+        "height": 29.578947368421062,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 27,
+    "created_at": "2023-03-15T05:59:53.368784Z",
+    "updated_at": "2023-03-16T01:08:40.104960Z",
+    "lead_time": 15.321
+  },
+  {
+    "img": "ccc83d3d-forktip_r_26.png",
+    "id": 27,
+    "kp-1": [
+      {
+        "x": 40.50805376262088,
+        "y": 67.95287835855399,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 25.256511444356754,
+        "y": 46,
+        "width": 29.913180741910022,
+        "height": 29.05263157894737,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 28,
+    "created_at": "2023-03-15T06:00:02.923492Z",
+    "updated_at": "2023-03-16T01:08:47.469431Z",
+    "lead_time": 13.434000000000001
+  },
+  {
+    "img": "25e51460-forktip_r_27.png",
+    "id": 28,
+    "kp-1": [
+      {
+        "x": 40.70706349691779,
+        "y": 68.10875504157458,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 25.96685082872928,
+        "y": 45.473684210526315,
+        "width": 29.2817679558011,
+        "height": 29.789473684210527,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 29,
+    "created_at": "2023-03-15T06:00:19.284793Z",
+    "updated_at": "2023-03-16T01:08:54.205100Z",
+    "lead_time": 19.708000000000002
+  },
+  {
+    "img": "e28c28f6-forktip_r_28.png",
+    "id": 29,
+    "kp-1": [
+      {
+        "x": 41.02837797922804,
+        "y": 68.34888338672191,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 24.62509865824783,
+        "y": 46.10526315789474,
+        "width": 30.939226519337016,
+        "height": 30,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 30,
+    "created_at": "2023-03-15T06:00:34.681928Z",
+    "updated_at": "2023-03-16T01:09:00.523933Z",
+    "lead_time": 17.055
+  },
+  {
+    "img": "800a2ebc-forktip_r_29.png",
+    "id": 30,
+    "kp-1": [
+      {
+        "x": 41.197441897662195,
+        "y": 68.57844231730759,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 25.256511444356754,
+        "y": 45.89473684210526,
+        "width": 29.913180741910022,
+        "height": 30.210526315789473,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 31,
+    "created_at": "2023-03-15T06:00:45.010896Z",
+    "updated_at": "2023-03-16T01:09:08.044282Z",
+    "lead_time": 13.543
+  },
+  {
+    "img": "7222b9b7-forktip_r_30.png",
+    "id": 31,
+    "kp-1": [
+      {
+        "x": 41.45912100644194,
+        "y": 68.75565605372947,
+        "width": 0.20746887966804978,
+        "keypointlabels": [
+          "tip"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "label": [
+      {
+        "x": 25.019731649565898,
+        "y": 46.421052631578945,
+        "width": 30.386740331491712,
+        "height": 29.473684210526308,
+        "rotation": 0,
+        "rectanglelabels": [
+          "tool"
+        ],
+        "original_width": 1600,
+        "original_height": 1200
+      }
+    ],
+    "annotator": 1,
+    "annotation_id": 32,
+    "created_at": "2023-03-15T06:00:59.166450Z",
+    "updated_at": "2023-03-16T01:09:16.286559Z",
+    "lead_time": 17.074
+  }
+]
