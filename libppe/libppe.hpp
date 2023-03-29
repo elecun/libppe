@@ -91,6 +91,22 @@ namespace libppe {
      */
     std::vector<pair<double, pos6d>> estimate_pos6d_effector(const char* source_series);
 
+
+    // newly added interface function (23.03.29)
+    /**
+     * @brief estimate the position and orientation both of effector and wafer
+     * @param source_image image file path(absolute)
+     * @return string dumped from JSON
+     */
+    string estimate(const char* source_image);
+
+    /**
+     * @brief set parameters for estimating position/orientation
+     * @param parameters predefined parameters (JSON format)
+     * @return true success, else false
+     */
+    bool set_parameter(string parameters);
+
 } /* namespace */
 
 # endif
