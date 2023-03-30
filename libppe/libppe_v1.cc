@@ -13,7 +13,6 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/aruco.hpp>
 
-
 #define _DEVICE_ "device"
 
 using namespace std;
@@ -167,33 +166,6 @@ namespace libppe {
         }
 
         return _results;
-    }
-
-    //newly added @ 23.03.29
-    json _param;
-    string estimate(const cahr* source_image){
-        json _result;
-
-        try {
-
-        }
-        catch(json::parse_error& e){
-            std::cerr << "parse error at byte " << ex.byte << std::endl;
-            std::cerr << "what : " << ex.what() << std::endl;
-        }
-
-        return _result.dump();
-    }
-
-    bool set_parameters(string parameters){
-        try {
-            json param = json::parse(parameters);
-        }
-        catch (json::parse_error& ex){
-            std::cerr << "parse error at byte " << ex.byte << std::endl;
-            std::cerr << "what : " << ex.what() << std::endl;
-        }
-        return false;
     }
 
 }
