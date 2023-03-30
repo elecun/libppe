@@ -171,7 +171,17 @@ namespace libppe {
     //newly added @ 23.03.29
     json _param;
     string estimate(const cahr* source_image){
+        json _result;
 
+        try {
+
+        }
+        catch(json::parse_error& e){
+            std::cerr << "parse error at byte " << ex.byte << std::endl;
+            std::cerr << "what : " << ex.what() << std::endl;
+        }
+
+        return _result.dump();
     }
 
     bool set_parameters(string parameters){
