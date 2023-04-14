@@ -24,7 +24,7 @@ namespace libppe {
 
     //newly added @ 23.03.29
     json _param;
-    
+
     string estimate(string job_desc){
         json _result;
         try {
@@ -42,7 +42,7 @@ namespace libppe {
                         _image_files.push_back(itr.value());
                     }
                     else {
-                        cout << 
+                        cout << "file name must be string type" << std::endl;
                     }
                         
                 }
