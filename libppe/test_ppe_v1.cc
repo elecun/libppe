@@ -99,12 +99,11 @@ int main(int argc, char** argv){
 
     try{
         if(!_config.empty()){
-            if(!libppe::set_parameters(_config.c_str())){
+            if(!libppe::set_configure(_config.c_str())){
                 console::info("load configuration file : {}", _config);
 
                 if(!_imagefile.empty()){
-                    string result = libppe::estimate(_imagefile.c_str());
-                    cout << result << endl;
+                    vector<pair<double, libppe::pos6d>> result = libppe::estimate_pos6d_wafer(_imagefile.c_str());
                 }
             }
         }
