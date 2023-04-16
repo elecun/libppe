@@ -8,9 +8,11 @@
 #include <cxxopts.hpp>
 #include <string>
 #include <sys/mman.h>
+#include "json.hpp"
 
 using namespace std;
 namespace console = spdlog;
+using namespace nlohmann;
 
 /* calc fps */
 int show_fps(){
