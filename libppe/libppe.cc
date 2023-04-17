@@ -14,7 +14,7 @@
 #include <opencv2/aruco.hpp>
 
 /* python bindings */
-#include <python3.10/Python.h>
+#include <python3.9/Python.h>
 
 
 using namespace std;

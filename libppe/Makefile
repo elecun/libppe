@@ -20,7 +20,7 @@ GCC := gcc
 LD_LIBRARY_PATH += -L./lib/armhf
 OUTDIR		= $(CURRENT_DIR)/../bin/
 BUILDDIR		= $(CURRENT_DIR)/../bin/
-INCLUDE_DIR = -I./ -I$(CURRENT_DIR)/ -I/usr/include/ -I/usr/include/opencv4/
+INCLUDE_DIR = -I./ -I$(CURRENT_DIR)/ -I/usr/include/ -I/usr/include/opencv4/ -I/usr/include/python3.9/
 LD_LIBRARY_PATH += -L/usr/local/lib -L./lib/armhf -L$(CURRENT_DIR)/../../lib/armhf/ -L./ -L$(CURRENT_DIR)/../bin/
 
 # OS

@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/usr/include",
-                "/usr/include/opencv4"
+                "/usr/include/opencv4",
+                "/usr/include/python3.9"
             ],
             "defines": [
                 "__cplusplus=201703L",
