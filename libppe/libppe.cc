@@ -14,7 +14,13 @@
 #include <opencv2/aruco.hpp>
 
 /* python bindings */
-#include <python3.9/Python.h>
+
+#define _PYTHRON_3_10_
+#if defined(_PYTHRON_3_10_)
+    #include <python3.10/Python.h>
+#elif defined(_PYTHONE_3_9)
+    #include <python3.9/Python.h>
+#endif
 
 
 using namespace std;
