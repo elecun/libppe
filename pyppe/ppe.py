@@ -59,7 +59,7 @@ if __name__ == "__main__":
         _camid = int(args.camid)
 
     #use camera device
-    device = cv2.VideoCapture(_camid)
+    device = cv2.VideoCapture(_camid, cv2.CAP_V4L2)
     if not (device.isOpened()):
         print("Could not open the camera device ID : ", _camid)
         sys.exit()
