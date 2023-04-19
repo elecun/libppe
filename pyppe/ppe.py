@@ -1,131 +1,83 @@
-'''
-Reference Wafer Marker Pose Accuracy Test 
-'''
+
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
-from cv2 import COLOR_RGB2GRAY
-import warnings
-warnings.filterwarnings('ignore')
+from matplotlib import pyplot as plt
 import argparse
-from abc import *
-import os
-# from mpl_toolkits import mplot3d
-# from mpl_toolkits.mplot3d import Axes3D
+import sys
 
-class estimator(metaclass=ABCMeta):
+WAFER_MARKER_MAP = {
+1:(-40.0,140.0),    2:(-20.0,140.0),    3:(0.0,140.0),      4:(20.0,140.0),     5:(40.0,140.0),  
+6:(-80.0,120.0),    7:(-60.0,120.0),    8:(-40.0,120.0),    9:(-20.0,120.0),    10:(0.0,120.0),     11:(20.0,120.0),    12:(40.0,120.0),    13:(60.0,120.0),    14:(80.0,120.0),   
+15:(-100.0,100.0),  16:(-80.0,100.0),   17:(-60.0,100.0),   18:(-40.0,100.0),   19:(-20.0,100.0),   20:(0.0,100.0),     21:(20.0,100.0),    22:(40.0,100.0),    23:(60.0,100.0),    24:(80.0,100.0),    25:(100.0,100.0),   
+26:(-120.0,80.0),   27:(-100.0,80.0),   28:(-80.0,80.0),    29:(-60.0,80.0),    30:(-40.0,80.0),    31:(-20.0,80.0),    32:(0.0,80.0),      33:(20.0,80.0),     34:(40.0,80.0),     35:(60.0,80.0),     36:(80.0,80.0),     37:(100.0,80.0),    38:(120.0,80.0),
+39:(-120.0,60.0),   40:(-100.0,60.0),   41:(-80.0,60.0),    42:(-60.0,60.0),    43:(-40.0,60.0),    44:(-20.0,60.0),    45:(0.0,60.0),      46:(20.0,60.0),     47:(40.0,60.0),     48:(60.0,60.0),     49:(80.0,60.0),     50:(100.0,60.0),    51:(120.0,60.0),   
+52:(-140.0,40.0),   53:(-120.0,40.0),   54:(-100.0,40.0),   55:(-80.0,40.0),    56:(-60.0,40.0),    57:(-40.0,40.0),    58:(-20.0,40.0),    59:(0.0,40.0),      60:(20.0,40.0),     61:(40.0,40.0),     62:(60.0,40.0),     63:(80.0,40.0),     64:(100.0,40.0),    65:(120.0,40.0),    66:(140.0,40.0),
+67:(-140.0,20.0),   68:(-120.0,20.0),   69:(-100.0,20.0),   70:(-80.0,20.0),    71:(-60.0,20.0),    72:(-40.0,20.0),    73:(-20.0,20.0),    74:(0.0,20.0),      75:(20.0,20.0),     76:(40.0,20.0),     77:(60.0,20.0),     78:(80.0,20.0),     79:(100.0,20.0),    80:(120.0,20.0),    81:(140.0,20.0),
+82:(-140.0,0.0),    83:(-120.0,0.0),    84:(-100.0,0.0),    85:(-80.0,0.0),     86:(-60.0,0.0),     87:(-40.0,0.0),     88:(-20.0,0.0),     89:(0.0,0.0),       90:(20.0,0.0),      91:(40.0,0.0),      92:(60.0,0.0),      93:(80.0,0.0),      94:(100.0,0.0),     95:(120.0,0.0),     96:(140.0,0.0),
+97:(-140.0,-20.0),  98:(-120.0,-20.0),  99:(-100.0,-20.0),  100:(-80.0,-20.0),  101:(-60.0,-20.0),  102:(-40.0,-20.0),  103:(-20.0,-20.0),  104:(0.0,-20.0),    105:(20.0,-20.0),   106:(40.0,-20.0),   107:(60.0,-20.0),   108:(80.0,-20.0),   109:(100.0,-20.0),  110:(120.0,-20.0),  111:(140.0,-20.0),
+112:(-140.0,-40.0), 113:(-120.0,-40.0), 114:(-100.0,-40.0), 115:(-80.0,-40.0),  116:(-60.0,-40.0),  117:(-40.0,-40.0),  118:(-20.0,-40.0),  119:(0.0,-40.0),    120:(20.0,-40.0),   121:(40.0,-40.0),   122:(60.0,-40.0),   123:(80.0,-40.0),   124:(100.0,-40.0),  125:(120.0,-40.0),  126:(140.0,-40.0), 
+127:(-120.0,-60.0), 128:(-100.0,-60.0), 129:(-80.0,-60.0),  130:(-60.0,-60.0),  131:(-40.0,-60.0),  132:(-20.0,-60.0),  133:(0.0,-60.0),    134:(20.0,-60.0),   135:(40.0,-60.0),   136:(60.0,-60.0),   137:(80.0,-60.0),   138:(100.0,-60.0),  139:(120.0,-60.0),   
+140:(-120.0,-80.0), 141:(-100.0,-80.0), 142:(-80.0,-80.0),  143:(-60.0,-80.0),  144:(-40.0,-80.0),  145:(-20.0,-80.0),  146:(0.0,-80.0),    147:(20.0,-80.0),   148:(40.0,-80.0),   149:(60.0,-80.0),   150:(80.0,-80.0),   151:(100.0,-80.0),  152:(120.0,-80.0),
+153:(-100.0,-100.0),154:(-80.0,-100.0), 155:(-60.0,-100.0), 156:(-40.0,-100.0), 157:(-20.0,-100.0), 158:(0.0,-100.0),   159:(20.0,-100.0),  160:(40.0,-100.0),  161:(60.0,-100.0),  162:(80.0,-100.0),  163:(100.0,-100.0),
+164:(-80.0,-120.0), 165:(-60.0,-120.0), 166:(-40.0,-120.0), 167:(-20.0,-120.0), 168:(0.0,-120.0),   169:(20.0,-120.0), 170:(40.0,-120.0),   171:(60.0,-120.0),  172:(80.0,-120.0),
+173:(-40.0,-140.0), 174:(-20.0,-140.0), 175:(0.0,-140.0),   176:(20.0,-140.0),  177:(40.0,-140.0)
+}
 
-    source_file = ""
+# intrinsic
+mtx = np.matrix([[2104.980135, 0.000000, 685.611350],[0.000000, 2105.382253, 481.061709],[0., 0., 1.]])
 
-    # camera parameters by camera calibration
-    mtx = np.matrix([[2517.792, 0., 814.045],[0., 2514.767, 567.330],[0., 0., 1.]])
-    dist = np.matrix([[-0.361044, 0.154482, 0.000808, 0.000033, 0.]])
+#distorsion
+dist = np.matrix([[-0.381566, 0.161209, 0.000589, 0.000404, 0.]])
 
-    @abstractmethod
-    def estimate(self):
-        pass
+extrinsic = np.matrix([
+    [-0.999333, -0.015262, 0.033173, 96.974835],
+    [-0.016663,  0.998963,  -0.042373,  126.214323],
+    [-0.032492,  -0.042898,  -0.998551,  597.234350],
+    [0.000000,  0.000000,  0.000000,  1.000000]
+])
+
+CAM_MARKER_OFFSET = [0, -65, -24.19]
+CAM_END_OFFSET = [85, 110, -24.19]
+ORIGIN_CAM_MARKER_TM = np.matrix([[1,0,0,CAM_MARKER_OFFSET[0]],[0,1,0,CAM_MARKER_OFFSET[1]],[0,0,1,CAM_MARKER_OFFSET[2]],[0,0,0,1]])
+ORIGIN_CAM_END_TM = np.matrix([[1,0,0,CAM_END_OFFSET[0]],[0,1,0,CAM_END_OFFSET[1]],[0,0,1,CAM_END_OFFSET[2]],[0,0,0,1]])
 
 
-class wafer_estimator(estimator):
 
-    def __init__(self, map, source) -> None:
-        self.map = map
-        self.source_file = source
-        #self.markerdict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250) # for < opencv 4.6
-        #self.markerparams = cv2.aruco.DetectorParameters_create() # for < opencv 4.6
-        self.markerdict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250) # for opencv 4.7.x (API was changed)
-        self.markerparams = cv2.aruco.DetectorParameters() # for opencv 4.7.x
-        self.markerparams.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX #marker detection refinement
-        self.markerdetector = cv2.aruco.ArucoDetector(self.markerdict, self.markerparams)
-
-    def __str__(self) -> str:
-        return "wafer estimator"
-
-    def estimate(self):
-        # show wafer position in 3D 
-        # fig = plt.figure(figsize=(10, 10))
-        # ax = plt.axes(projection='3d')
-        # fig.clf()
-        # fig.show()
-        _path, _ext = os.path.splitext(self.source_file)
-        if _ext == '.avi': # for video
-            _video = cv2.VideoCapture(self.source_file)
-            _width  = int(_video.get(cv2.CAP_PROP_FRAME_WIDTH))
-            _height = int(_video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            _fps = _video.get(cv2.CAP_PROP_FPS)
-            _frames = int(_video.get(cv2.CAP_PROP_FRAME_COUNT))
-            print("> Video source info. : ({},{}@{}), {} frames".format(_width, _height, _fps, _frames))
-            _newmtx, _roi = cv2.getOptimalNewCameraMatrix(self.mtx, self.dist, (_width,_height), 0, (_width,_height))
-
-            if _video.isOpened():
-                while True:
-                    ret, frame = _video.read()
-                    if ret == True:
-                        _undist_frame = cv2.undistort(frame, self.mtx, self.dist, None, _newmtx)
-                        _gray_frame = cv2.cvtColor(_undist_frame, cv2.COLOR_BGR2GRAY)
-                        _gray_inv = cv2.bitwise_not(_gray_frame)
-                        ret, _binary = cv2.threshold(_gray_inv, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-                        markerCorners, markerIds, rejectedCandidates = self.markerdetector.detectMarkers(_binary)
-                        print(markerCorners[0].tolist())
-
-                        if len(markerCorners) > 2:
-                            for i in range(0, len(markerIds)):
-                                # for under opencv 4.7
-                                #rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(markerCorners[i], 0.04, self.mtx, self.dist)
-
-                                # for opencv 4.7
-                                objPoints = np.array([[0., 0., 0.], [1., 0., 0.], [1., 1., 0.], [0., 1., 0.]])
-                                valid, rvec, tvec = cv2.solvePnP(objPoints, markerCorners[i], self.mtx, self.dist)
-                                
-                                if markerIds[i] == 9:
-                                    print("{}\tX : {}\tY : {}\tZ : {}".format(markerIds[i], tvec.reshape(-1)[0]*100, tvec.reshape(-1)[1]*100, tvec.reshape(-1)[2]*100))
-                                    print(rvec)
-                                    break
-
-                                (topLeft, topRight, bottomRight, bottomLeft) = markerCorners[i].reshape((4,2))
-                                topRight = (int(topRight[0]), int(topRight[1]))
-                                bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
-                                bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
-                                topLeft = (int(topLeft[0]), int(topLeft[1]))
-
-                                cX = int((topLeft[0] + bottomRight[0]) / 2.0)
-                                cY = int((topLeft[1] + bottomRight[1]) / 2.0)
-                                cv2.circle(_undist_frame, (cX, cY), 4, (0, 0, 255), -1)
-
-                                cv2.aruco.drawDetectedMarkers(_undist_frame, markerCorners) 
-                                #cv2.aruco.drawFrameAxes(frame_undist, mtx, dist, rvec, tvec, 0.01) 
-                                #cv2.putText(frame_undist, str(ids[i]),(topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-                        
-                        
-                        # draw corner points
-                        cv2.imshow("result", _undist_frame)
-                    key = cv2.waitKey(100)
-                    if key == 27:
-                        cv2.destroyAllWindows()
-                        break
-        
-        
-
-if __name__ == '__main__':
+if __name__ == "__main__":
+    
+    #arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--map', nargs='?', required=True)
-    parser.add_argument('--target', required=True)
-    parser.add_argument('--source', nargs='?', required=True, help="input image or video file to estimate the pose")
+    parser.add_argument('--camid', nargs='?', required=True, help="camera ID (default 0)")
+    parser.add_argument('--test', nargs='?', required=False, help="Focus Quality Measurement")
     args = parser.parse_args()
+    
+    # camera id setting
+    _camid = 0 #default cam ID
+    if args.camid is None:
+        print("camid argument requires. 0 will be used.")
+    else:
+        _camid = int(args.camid)
 
-    # fig = plt.figure(figsize=(10,10))
-    # ax = fig.add_subplot(111, projection='3d')
-    # ax.set_zlim(0, 200) # z limit : 200mm
-    # cylinder = Cylinder([0, 0, 0], [0, 0, 0.775], 150) # center, normal vector(z-775um), radius(150mm)
-    # cylinder.plot_3d(ax, alpha=0.8)
-    # cylinder.point.plot_3d(ax, s=10)
-    # fig.show()
+    #use camera device
+    device = cv2.VideoCapture(_camid)
+    if not (device.isOpened()):
+        print("Could not open the camera device ID : ", _camid)
+        sys.exit()
 
+    device.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+    device.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    device.set(cv2.CAP_PROP_FRAME_HEIGHT, 960)
+    device.set(cv2.CAP_PROP_AUTO_EXPOSURE, -11)
+    device.set(cv2.CAP_PROP_AUTO_WB, 0)
+    
+    while True:
+        success, raw = device.read()
+        if success is True:
+            cv2.imshow("Camera Raw Image", raw)
+            
+            key = cv2.waitKey(1)
+            if key == 27:
+                cv2.destroyAllWindows()
+                break
 
-    if args.target == "fork" or args.target == "effector":
-        pass
-    elif args.target == "wafer":
-        estimator = wafer_estimator(args.map, args.source)
-        result = estimator.estimate()
-    elif args.target == "camera":
-        pass
+    device.release()
