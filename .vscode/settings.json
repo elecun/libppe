@@ -2,6 +2,10 @@
     "files.associations": {
         "memory": "cpp",
         "stop_token": "cpp",
-        "condition_variable": "cpp"
+        "condition_variable": "cpp",
+        "string": "cpp",
+        "istream": "cpp",
+        "functional": "cpp",
+        "tuple": "cpp"
     }
 }

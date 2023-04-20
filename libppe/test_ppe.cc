@@ -9,6 +9,8 @@
 #include <string>
 #include <sys/mman.h>
 #include "json.hpp"
+#include "util.hpp"
+#include <fstream>
 
 using namespace std;
 namespace console = spdlog;
@@ -74,8 +76,8 @@ int main(int argc, char** argv){
 
     cxxopts::Options options("TEST program for libppe library");
     options.add_options()
-        ("c,config", "Application start with configuration file(*.conf)", cxxopts::value<string>())
-        ("i,image", "Image file(*.png)", cxxopts::value<string>())
+        ("c,config", "Set parameters from configuration file(*.json)", cxxopts::value<string>())
+        ("j,job", "Execute pose estimation function with job file(*.json)", cxxopts::value<string>())
         ("h,help", "Print usage");
 
     auto optval = options.parse(argc, argv);
@@ -90,26 +92,44 @@ int main(int argc, char** argv){
     mlockall(MCL_CURRENT|MCL_FUTURE); //avoid memory swaping
     console::info("Ver. {}.{}.{} (built {}/{})", __MAJOR__, __MINOR__, __REV__, __DATE__, __TIME__);
 
-    string _config {""};
-    string _imagefile ("");
+    string _config_filename {""};
+    json _config;
+    string _job_filename {""};
+    json _job;
+
     if(optval.count("config")){
-        _config = optval["config"].as<string>();
+        _config_filename = optval["config"].as<string>();
     }
-    if(optval.count("image")){
-        _imagefile = optval["image"].as<string>();
+    if(optval.count("job")){
+        _job_filename = optval["job"].as<string>();
     }
+    else
+        return EXIT_FAILURE;
 
     try{
-        if(!_config.empty()){
-            if(!libppe::set_parameters(_config.c_str())){
-                console::info("load configuration file : {}", _config);
-
-                if(!_imagefile.empty()){
-                    string result = libppe::estimate(_imagefile.c_str());
-                    cout << result << endl;
-                }
-            }
+        if(!util::exist(_config_filename.c_str())){
+            cout << "Configuration file does not exist" << endl;
+            return EXIT_FAILURE;
         }
+
+        if(!util::exist(_job_filename.c_str())){
+            cout << "Pose estimation job file does not exist" << endl;
+            return EXIT_FAILURE;
+        }
+
+        std::ifstream cfile(_config_filename);
+        cfile >> _config;
+
+        std::ifstream jfile(_job_filename);
+        jfile >> _config;
+
+        if(libppe::set_parameters(_config.dump())){
+            string out = libppe::estimate(_job.dump());
+            console::info("{}", out);
+            // json result;
+            // result.parse(out);
+        }        
+        
     }
     catch(const std::exception& e){
         console::error("Exception : {}", e.what());
