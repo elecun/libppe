@@ -121,13 +121,11 @@ int main(int argc, char** argv){
         cfile >> _config;
 
         std::ifstream jfile(_job_filename);
-        jfile >> _config;
+        jfile >> _job;
 
         if(libppe::set_parameters(_config.dump())){
             string out = libppe::estimate(_job.dump());
             console::info("{}", out);
-            // json result;
-            // result.parse(out);
         }        
         
     }

@@ -15,7 +15,7 @@
 
 /* python bindings */
 
-#define _PYTHON_3_8_
+#define _PYTHON_3_9_
 #define PY_SSIZE_T_CLEAN
 #if defined(_PYTHON_3_10_)
     #include <python3.10/Python.h>
@@ -40,6 +40,12 @@ namespace libppe {
     /* pose estimation interface function */
     string estimate(string job_desc){
 
+        if(_param.empty()){
+            throw std::runtime_error("No camera parameters. please, set a parameter by set_parameters");
+            return "{}";
+        }
+            
+
         _result.empty(); //clear
 
         try {
@@ -63,8 +69,10 @@ namespace libppe {
             }
 
             //json format string arguments
-            PyObject* _py_func_args = PyTuple_New(1);
-            PyTuple_SetItem(_py_func_args, 0, PyUnicode_FromString(job_desc.c_str()));
+            PyObject* _py_func_args = PyTuple_New(2);
+            string p = _param.dump();
+            PyTuple_SetItem(_py_func_args, 0, PyUnicode_FromString(p.c_str()));
+            PyTuple_SetItem(_py_func_args, 1, PyUnicode_FromString(job_desc.c_str()));
             PyObject* _py_result = PyObject_CallObject(_py_func_estimate, _py_func_args);
 
             if(_py_result==nullptr){
@@ -94,47 +102,6 @@ namespace libppe {
         }
 
         return _result;
-
-
-        // //job desc check & parse
-        // json desc = json::parse(job_desc);
-        // if(desc.contains("use_parameters") && desc.contains("path") && desc.contains("files")){
-        //     string _param_name = desc["use_parameters"].get<string>();
-        //     string _path = desc["path"].get<string>();
-        //     json _files = desc["files"];
-        //     vector<string> _image_files;
-
-        //     //getting image list from job desc.
-        //     for(json::iterator itr = _files.begin(); itr != _files.end(); ++itr){
-        //         if(itr.value().is_string()){
-        //             _image_files.push_back(itr.value());
-        //         }   
-        //     }
-
-        //     for(auto image_file : _image_files){
-        //         cv::Mat image = cv::imread(_path+image_file, 0);
-        //         //processing for wafer position estimation
-        //         //code here
-        //         _result[image_file]["wafer_x"] = 0.0;
-        //         _result[image_file]["wafer_y"] = 0.0;
-        //         _result[image_file]["wafer_z"] = 0.0;
-        //         _result[image_file]["wafer_r"] = 0.0;
-        //         _result[image_file]["wafer_p"] = 0.0;
-        //         _result[image_file]["wafer_w"] = 0.0;
-
-        //         //processing for effector position estimation
-        //         //code here
-        //         _result[image_file]["effector_x"] = 0.0;
-        //         _result[image_file]["effector_y"] = 0.0;
-        //         _result[image_file]["effector_z"] = 0.0;
-        //         _result[image_file]["effector_r"] = 0.0;
-        //         _result[image_file]["effector_p"] = 0.0;
-        //         _result[image_file]["effector_w"] = 0.0;
-
-        //         //processing for additional geometrical calculation
-        //         _result[image_file]["distance"] = 0.0;
-        //     }
-
     }
 
     string estimate(string job_param, vector<cv::Mat> images){
@@ -151,6 +118,7 @@ namespace libppe {
 
     /* setting up parameters for image processing */
     bool set_parameters(string parameterset){
+
         try {
             if(!_param.empty())
                 _param.clear();
