@@ -16,14 +16,9 @@ def estimate(json_camera_param, json_job_desc):
         desc = json.loads(json_job_desc)
         param = json.loads(json_camera_param)
         
-        print(param.x)
-        
-        # parameterset
-        # intrinsic_mtx = (
-        #     [[param.fx]]
-        # )
-        
-        #mtx = np.matrix([[2104.980135, 0.000000, 685.611350],[0.000000, 2105.382253, 481.061709],[0., 0., 1.]])
+        # set camera parameter
+        intrinsic_mtx = np.matrix([[float(param['fx']), 0.000000, float(param['cx'])], [0.000000, float(param['fy']), float(param['cy'])], [0.000000, 0.000000, 1.000000]])
+        distorsion_mtx = np.matrix([[float(param['coeff_k1']), float(param['coeff_k2']), float(param['coeff_p1']), float(param['coeff_p2']), 0.]])
         
         # output to return
         result_dic = {}

@@ -20,15 +20,15 @@ GCC := gcc
 LD_LIBRARY_PATH += -L./lib/armhf
 OUTDIR		= $(CURRENT_DIR)/../bin/
 BUILDDIR		= $(CURRENT_DIR)/../bin/
-INCLUDE_DIR = -I./ -I$(CURRENT_DIR)/ -I/usr/include/ -I/usr/include/opencv4/ -I/usr/include/python3.9/
+INCLUDE_DIR = -I./ -I$(CURRENT_DIR)/ -I/usr/include/ -I/usr/include/opencv4/ -I/usr/include/python3.10/
 LD_LIBRARY_PATH += -L/usr/local/lib -L./lib/armhf -L$(CURRENT_DIR)/../../lib/armhf/ -L./ -L$(CURRENT_DIR)/../bin/
-CFLAGS+=$(shell python3.9-config --cflags)
-LDFLAGS+=$(shell python3.9-config --ldflags)
+CFLAGS+=$(shell python3.10-config --cflags)
+LDFLAGS+=$(shell python3.10-config --ldflags)
 
 # OS
 ifeq ($(OS),Linux) #for Linux
 	LDFLAGS = -Wl,--export-dynamic -Wl,-rpath=$(LD_LIBRARY_PATH)
-	LDLIBS = -pthread -lrt -ldl -lm $(shell pkg-config --cflags --libs opencv4) $(shell python3.8-config --libs --embed) -lpython3.9
+	LDLIBS = -pthread -lrt -ldl -lm $(shell pkg-config --cflags --libs opencv4) $(shell python3.10-config --libs --embed) -lpython3.10
 	GTEST_LDLIBS = -lgtest
 endif
 
@@ -37,7 +37,7 @@ $(shell mkdir -p $(BUILDDIR))
 
 #if release(-O3), debug(-O0)
 CXXFLAGS = -O3 -fPIC -Wall -std=c++17 -D__cplusplus=201703L
-CXXFLAGS += $(shell python3.9-config --cflags)
+CXXFLAGS += $(shell python3.10-config --cflags)
 
 #custom definitions
 CXXFLAGS += -D__MAJOR__=0 -D__MINOR__=0 -D__REV__=1

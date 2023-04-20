@@ -15,7 +15,7 @@
 
 /* python bindings */
 
-#define _PYTHON_3_9_
+#define _PYTHON_3_10_
 #define PY_SSIZE_T_CLEAN
 #if defined(_PYTHON_3_10_)
     #include <python3.10/Python.h>
