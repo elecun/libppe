@@ -3,7 +3,8 @@
 # Note : You should make with GCC/G++ version 8
 
 # Makefile
-OS := $(shell uname)
+OS := $(shell uname -s)
+ARCH := $(shell uname -p)
 
 #Set Architecutre
 #ARCH := armhf
@@ -25,19 +26,30 @@ LD_LIBRARY_PATH += -L/usr/local/lib -L./lib/armhf -L$(CURRENT_DIR)/../../lib/arm
 CFLAGS+=$(shell python3.10-config --cflags)
 LDFLAGS+=$(shell python3.10-config --ldflags)
 
+
+LDFLAGS = -Wl,--export-dynamic -Wl,-rpath=$(LD_LIBRARY_PATH)
+LDLIBS = -pthread -lrt -ldl -lm $(shell pkg-config --cflags --libs opencv4)
+CXXFLAGS = -O3 -fPIC -Wall -std=c++17 -D__cplusplus=201703L
 # OS
 ifeq ($(OS),Linux) #for Linux
-	LDFLAGS = -Wl,--export-dynamic -Wl,-rpath=$(LD_LIBRARY_PATH)
-	LDLIBS = -pthread -lrt -ldl -lm $(shell pkg-config --cflags --libs opencv4) $(shell python3.10-config --libs --embed) -lpython3.10
-	GTEST_LDLIBS = -lgtest
+	ifeq ($(ARCH),x86_64)
+		INCLUDE_DIR += -I/usr/include/python3.10/
+		LDLIBS += $(shell python3.10-config --libs --embed) -lpython3.10
+		CXXFLAGS += $(shell python3.10-config --cflags)
+		
+		GTEST_LDLIBS = -lgtest
+	else ifdef ($(ARCH),unknown)
+		INCLUDE_DIR += -I/usr/include/python3.9/
+		LDLIBS += $(shell python3.9-config --libs --embed) -lpython3.9
+		CXXFLAGS += $(shell python3.9-config --cflags)
+	endif
 endif
 
 $(shell mkdir -p $(OUTDIR))
 $(shell mkdir -p $(BUILDDIR))
 
 #if release(-O3), debug(-O0)
-CXXFLAGS = -O3 -fPIC -Wall -std=c++17 -D__cplusplus=201703L
-CXXFLAGS += $(shell python3.10-config --cflags)
+
 
 #custom definitions
 CXXFLAGS += -D__MAJOR__=0 -D__MINOR__=0 -D__REV__=1
