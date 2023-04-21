@@ -12,13 +12,19 @@ import numpy as np
 def estimate(json_camera_param, json_job_desc):
     
     try:
-        # load parameters
+        # load user parameters
         desc = json.loads(json_job_desc)
         param = json.loads(json_camera_param)
         
         # set camera parameter
         intrinsic_mtx = np.matrix([[float(param['fx']), 0.000000, float(param['cx'])], [0.000000, float(param['fy']), float(param['cy'])], [0.000000, 0.000000, 1.000000]])
         distorsion_mtx = np.matrix([[float(param['coeff_k1']), float(param['coeff_k2']), float(param['coeff_p1']), float(param['coeff_p2']), 0.]])
+        
+        print(param['coord'][1])
+        
+        # camera coord. / transformation matrix
+        coord = np.matrix([[1,0,0,float(param['coord'][0])],[0,1,0,float(param['coord'][1])],[0,0,1,float(param['coord'][2])],[0,0,0,1]])
+    
         
         # output to return
         result_dic = {}
