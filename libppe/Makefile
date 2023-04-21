@@ -49,8 +49,6 @@ ifeq ($(OS),Linux) #for Linux
 	endif
 endif
 
-$(info $(INCLUDE_DIR))
-
 $(shell mkdir -p $(OUTDIR))
 $(shell mkdir -p $(BUILDDIR))
 
