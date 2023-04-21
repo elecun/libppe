@@ -38,11 +38,11 @@ ifeq ($(OS),Linux) #for Linux
 		INCLUDE_DIR += -I/usr/include/python3.10/
 		LDLIBS += $(shell python3.10-config --libs --embed) -lpython3.10
 		CXXFLAGS += $(shell python3.10-config --cflags)
-	else ifdef ($(PYTHON_VER_MINOR),9)
+	else ifeq ($(PYTHON_VER_MINOR),9)
 		INCLUDE_DIR += -I/usr/include/python3.9/
 		LDLIBS += $(shell python3.9-config --libs --embed) -lpython3.9
 		CXXFLAGS += $(shell python3.9-config --cflags)
-	else ifdef ($(PYTHON_VER_MINOR),8)
+	else ifeq ($(PYTHON_VER_MINOR),8)
 		INCLUDE_DIR += -I/usr/include/python3.8/
 		LDLIBS += $(shell python3.8-config --libs --embed) -lpython3.8
 		CXXFLAGS += $(shell python3.8-config --cflags)
