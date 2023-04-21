@@ -15,14 +15,24 @@
 
 /* python bindings */
 
-#define _PYTHON_3_10_
+//#define _PYTHON_3_10_
 #define PY_SSIZE_T_CLEAN
-#if defined(_PYTHON_3_10_)
-    #include <python3.10/Python.h>
-#elif defined(_PYTHON_3_9_)
-    #include <python3.9/Python.h>
-#elif defined(_PYTHON_3_8_)
-    #include <python3.8/Python.h>
+// #if defined(_PYTHON_3_10_)
+//     #include <python3.10/Python.h>
+// #elif defined(_PYTHON_3_9_)
+//     #include <python3.9/Python.h>
+// #elif defined(_PYTHON_3_8_)
+//     #include <python3.8/Python.h>
+// #endif
+
+#if (__PYTHON_VER_MAJOR__==3)
+    #if (_PYTHON_VER_MINOR__==8)
+        #include <python3.8/Python.h>
+    #elif (__PYTHON_VER_MINOR__==9)
+        #include <python3.9/Python.h>
+    #elif (__PYTHON_VER_MINOR__==10)
+        #include <python3.10/Python.h>
+    #endif
 #endif
 
 #define PYTHON_MDOULE_NAME  "ppe_module"

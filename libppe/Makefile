@@ -11,11 +11,12 @@ PYTHON_VER_MAJOR := $(word 1,${PYTHON_VER})
 PYTHON_VER_MINOR := $(word 2,${PYTHON_VER})
 PYTHON_VER_REV := $(word 3,${PYTHON_VER})
 
+$(info $(CURRENT_DIR))
 
 CURRENT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 CURRENT_DIR_NAME := $(notdir $(patsubst %/,%,$(dir $(CURRENT_DIR))))
 
-$(info $(CURRENT_DIR))
+$(info Installed Python3 Version : $(shell python3 -V))
 
 
 #Compilers
@@ -41,6 +42,10 @@ ifeq ($(OS),Linux) #for Linux
 		INCLUDE_DIR += -I/usr/include/python3.9/
 		LDLIBS += $(shell python3.9-config --libs --embed) -lpython3.9
 		CXXFLAGS += $(shell python3.9-config --cflags)
+	else ifdef ($(PYTHON_VER_MINOR),8)
+		INCLUDE_DIR += -I/usr/include/python3.8/
+		LDLIBS += $(shell python3.8-config --libs --embed) -lpython3.8
+		CXXFLAGS += $(shell python3.8-config --cflags)
 	endif
 endif
 
@@ -51,7 +56,7 @@ $(shell mkdir -p $(BUILDDIR))
 
 
 #custom definitions
-CXXFLAGS += -D__MAJOR__=0 -D__MINOR__=0 -D__REV__=1
+CXXFLAGS += -D__MAJOR__=0 -D__MINOR__=0 -D__REV__=1 -D__PYTHON_VER_MAJOR__=$(PYTHON_VER_MAJOR) -D__PYTHON_VER_MINOR__=$(PYTHON_VER_MINOR)
 RM	= rm -rf
 
 #directories
