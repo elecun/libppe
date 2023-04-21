@@ -6,8 +6,11 @@
 OS := $(shell uname -s)
 ARCH := $(shell uname -p)
 
-#Set Architecutre
-#ARCH := armhf
+PYTHON_VER := $(wordlist 2,4,$(subst ., ,$(shell python3 -V 2>&1)))
+PYTHON_VER_MAJOR := $(word 1,${PYTHON_VER})
+PYTHON_VER_MINOR := $(word 2,${PYTHON_VER})
+PYTHON_VER_REV := $(word 3,${PYTHON_VER})
+
 
 CURRENT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 CURRENT_DIR_NAME := $(notdir $(patsubst %/,%,$(dir $(CURRENT_DIR))))
@@ -21,10 +24,8 @@ GCC := gcc
 LD_LIBRARY_PATH += -L./lib/armhf
 OUTDIR		= $(CURRENT_DIR)/../bin/
 BUILDDIR		= $(CURRENT_DIR)/../bin/
-INCLUDE_DIR = -I./ -I$(CURRENT_DIR)/ -I/usr/include/ -I/usr/include/opencv4/ -I/usr/include/python3.10/
+INCLUDE_DIR = -I./ -I$(CURRENT_DIR)/ -I/usr/include/ -I/usr/include/opencv4/
 LD_LIBRARY_PATH += -L/usr/local/lib -L./lib/armhf -L$(CURRENT_DIR)/../../lib/armhf/ -L./ -L$(CURRENT_DIR)/../bin/
-CFLAGS+=$(shell python3.10-config --cflags)
-LDFLAGS+=$(shell python3.10-config --ldflags)
 
 
 LDFLAGS = -Wl,--export-dynamic -Wl,-rpath=$(LD_LIBRARY_PATH)
@@ -32,13 +33,11 @@ LDLIBS = -pthread -lrt -ldl -lm $(shell pkg-config --cflags --libs opencv4)
 CXXFLAGS = -O3 -fPIC -Wall -std=c++17 -D__cplusplus=201703L
 # OS
 ifeq ($(OS),Linux) #for Linux
-	ifeq ($(ARCH),x86_64)
+	ifeq ($(PYTHON_VER_MINOR),10)
 		INCLUDE_DIR += -I/usr/include/python3.10/
 		LDLIBS += $(shell python3.10-config --libs --embed) -lpython3.10
 		CXXFLAGS += $(shell python3.10-config --cflags)
-		
-		GTEST_LDLIBS = -lgtest
-	else ifdef ($(ARCH),unknown)
+	else ifdef ($(PYTHON_VER_MINOR),9)
 		INCLUDE_DIR += -I/usr/include/python3.9/
 		LDLIBS += $(shell python3.9-config --libs --embed) -lpython3.9
 		CXXFLAGS += $(shell python3.9-config --cflags)
@@ -59,20 +58,10 @@ RM	= rm -rf
 INCLUDE_FILES = . #$(CURRENT_DIR)/../../include
 SOURCE_FILES = .
 
-test_camera : $(BUILDDIR)test_camera.o
-			  $(CC) $(LDFLAGS) $(LD_LIBRARY_PATH) -o $(BUILDDIR)$@ $^ $(LDLIBS)
-
-$(BUILDDIR)test_camera.o: $(CURRENT_DIR)/test_camera.cc
-	$(CC) $(CXXFLAGS) $(INCLUDE_DIR) -c $^ -o $@
-
-
-libppe.so : $(BUILDDIR)libppe.o \
-			  $(BUILDDIR)algorithm.o
+libppe.so : $(BUILDDIR)libppe.o
 			  $(CC) $(LDFLAGS) $(LD_LIBRARY_PATH) -shared -o $(BUILDDIR)$@ $^ $(LDLIBS)
 
 $(BUILDDIR)libppe.o: $(CURRENT_DIR)/libppe.cc
-					   $(CC) $(CXXFLAGS) $(INCLUDE_DIR) -c $^ -o $@
-$(BUILDDIR)algorithm.o: $(CURRENT_DIR)/algorithm.cc
 					   $(CC) $(CXXFLAGS) $(INCLUDE_DIR) -c $^ -o $@
 
 test_ppe : $(BUILDDIR)test_ppe.o
@@ -81,7 +70,7 @@ $(BUILDDIR)test_ppe.o: $(CURRENT_DIR)/test_ppe.cc
 					   $(CC) $(CXXFLAGS) $(INCLUDE_DIR) -c $^ -o $@
 
 
-all : test_camera test_ppe libppe
+all : test_ppe libppe
 clean : FORCE 
 		$(RM) $(BUILDDIR)*.o
 FORCE : 
