@@ -116,7 +116,7 @@ int main(int argc, char** argv){
         //do estimation
         if(libppe::set_parameters(_config.dump())){
             string out = libppe::estimate(_job.dump());
-            console::info("{}", out);
+            console::info("Estimated results = {}", out);
         }
 
         //calc time elapsed
