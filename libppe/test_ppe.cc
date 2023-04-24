@@ -4,31 +4,18 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include <csignal>
-#include <ctime>
 #include <cxxopts.hpp>
 #include <string>
 #include <sys/mman.h>
 #include "json.hpp"
 #include "util.hpp"
 #include <fstream>
+#include <chrono>
 
 using namespace std;
 namespace console = spdlog;
 using namespace nlohmann;
 
-/* calc fps */
-int show_fps(){
-    static int frame_count = 0;
-	static time_t beginTime = time(NULL);
-    frame_count++;
-	if((time(NULL)-beginTime)>=1)
-	{
-		beginTime = time(NULL);
-        spdlog::info("FPS : {}", frame_count);
-		frame_count = 0;
-	}
-    return frame_count;
-}
 
 /* handling for signal event */
 void cleanup(int sig) {
@@ -108,12 +95,12 @@ int main(int argc, char** argv){
 
     try{
         if(!util::exist(_config_filename.c_str())){
-            cout << "Configuration file does not exist" << endl;
+            console::error("Configuration file does not exist");
             return EXIT_FAILURE;
         }
 
         if(!util::exist(_job_filename.c_str())){
-            cout << "Pose estimation job file does not exist" << endl;
+            console::error("Estimation job file does not exist");
             return EXIT_FAILURE;
         }
 
@@ -123,10 +110,18 @@ int main(int argc, char** argv){
         std::ifstream jfile(_job_filename);
         jfile >> _job;
 
+        //for time performance check
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+        //do estimation
         if(libppe::set_parameters(_config.dump())){
             string out = libppe::estimate(_job.dump());
             console::info("{}", out);
-        }        
+        }
+
+        //calc time elapsed
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        console::info("Elapsed time : {} usec.",std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count());
         
     }
     catch(const std::exception& e){
