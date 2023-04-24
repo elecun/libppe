@@ -121,7 +121,7 @@ int main(int argc, char** argv){
 
         //calc time elapsed
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        console::info("Elapsed time : {} usec.",std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count());
+        console::info("Elapsed time : {} msec.",std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count());
         
     }
     catch(const std::exception& e){
