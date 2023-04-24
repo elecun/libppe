@@ -83,23 +83,20 @@ def estimate(json_camera_param, json_job_desc):
                         image_marker_centroid.append(image_centroid)
                         wafer_marker_centroid.append(wafer_centroid)
                         
-                        #print("center of wmc : ", ids[idx, 0], wafer_marker_centroid)
-                        #print("center of imc : ", ids[idx, 0], image_marker_centroid)
-                        
                         # write to image
                         cv2.circle(ud_image_color, [round(c) for c in image_centroid], 1, (0, 0, 255), 2)
                         cv2.line(ud_image_color, (round(newcamera_mtx[0,2])-100,round(newcamera_mtx[1,2])), (round(newcamera_mtx[0,2])+100,round(newcamera_mtx[1,2])), (0,0,255), 1, cv2.LINE_AA)
                         cv2.line(ud_image_color, (round(newcamera_mtx[0,2]),round(newcamera_mtx[1,2])-100), (round(newcamera_mtx[0,2]),round(newcamera_mtx[1,2])+100), (0,0,255), 1, cv2.LINE_AA)
-                        
+                        str_pos = "[%d] x=%2.2f,y=%2.2f,z=%2.2f"%(ids[idx], wafer_centroid[0], wafer_centroid[1], wafer_centroid[2])
+                        cv2.putText(ud_image_color, str_pos,(int(image_centroid[0]), int(image_centroid[1]) - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+        
                     cv2.imwrite("marker_centroid_"+job_file, ud_image_color)
                     
                     # camera pose
                     image_pts_vec = np.array(image_marker_centroid)
                     wafer_pts_vec = np.array(wafer_marker_centroid)
-                    
-                    #print("image marker centroid", image_marker_centroid)
-                    #print("wafer marker centroid", wafer_marker_centroid)
-                    _, rVec, tVec = cv2.solvePnP(wafer_pts_vec, image_pts_vec, newcamera_mtx, distorsion_mtx, 0)
+   
+                    _, rVec, tVec = cv2.solvePnP(wafer_pts_vec, image_pts_vec, newcamera_mtx, distorsion_mtx, flags=cv2.SOLVEPNP_SQPNP)
                     print(tVec)
                     R, jacobian = cv2.Rodrigues(rVec)
                     #print(R.T)
