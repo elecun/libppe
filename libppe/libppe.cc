@@ -51,7 +51,7 @@ namespace libppe {
         try {
             // python initialize
             Py_Initialize();
-            PyRun_SimpleString("import sys; sys.path.append('.')");
+            PyRun_SimpleString("import sys; import os; sys.path.append('.'); sys.path.append(os.getcwd())");
 
             //python module import
             PyObject* _py_module = PyImport_ImportModule(PYTHON_MDOULE_NAME);

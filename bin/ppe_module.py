@@ -29,7 +29,7 @@ def estimate(json_camera_param, json_job_desc):
         # set camera parameter
         intrinsic_mtx = np.matrix([[float(param['fx']), 0.000000, float(param['cx'])], [0.000000, float(param['fy']), float(param['cy'])], [0.000000, 0.000000, 1.000000]])
         distorsion_mtx = np.matrix([[float(param['coeff_k1']), float(param['coeff_k2']), float(param['coeff_p1']), float(param['coeff_p2']), 0.]])
-        newcamera_mtx, roi = cv2.getOptimalNewCameraMatrix(intrinsic_mtx, distorsion_mtx,(_w, _h),0,(_w, _h))
+        newcamera_mtx, roi = cv2.getOptimalNewCameraMatrix(intrinsic_mtx, distorsion_mtx,(_w, _h), 1, (_w, _h))
         
         # marker
         markerdict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
@@ -47,26 +47,71 @@ def estimate(json_camera_param, json_job_desc):
                 
                 # estimation processing
                 if os.path.isfile(job_file_path): # if file exist
+                    print(job_file, "is processing...")
                     
-                    # getting image profile
+                    # image read and color conversion
                     raw_image = cv2.imread(job_file_path, cv2.IMREAD_UNCHANGED)
-                    raw_image_gray = cv2.cvtColor(raw_image, cv2.COLOR_BGR2GRAY)
+                    
+                    # image undistorsion by calibration parameters
+                    ud_image = cv2.undistort(raw_image, intrinsic_mtx, distorsion_mtx, None, newcamera_mtx)
+                    ud_image_color = ud_image.copy()
+                    
+                    # color conversion
+                    ud_image_gray = cv2.cvtColor(ud_image, cv2.COLOR_BGR2GRAY)
                     _raw_h, _raw_w, _raw_c = raw_image.shape
                     if _raw_h!=_h and _raw_w!=_w:
                         raise ValueError("Image shaoe is different from your configurations")
                     
-                    # undistorsion
-                    ud_image_gray = cv2.undistort(raw_image_gray, intrinsic_mtx, None, newcamera_mtx)
-                    
-                    # preprocessing (binarization)
+                    # preprocessing (invert, binarization)
                     ud_image_gray = cv2.bitwise_not(ud_image_gray)
-                    _, ud_image_binary = cv2.threshold(ud_image_gray, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-                    
-                    
+                    #ud_image_gray = cv2.bilateralFilter(ud_image_gray, -1, 10, 5)
+                    #_, ud_image_binary = cv2.threshold(ud_image_gray, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
                     
                     # find markers
-                    corners, ids, rejected = cv2.aruco.detectMarkers(ud_image_binary, markerdict, parameters=markerparams)
-                    print("marker detected")
+                    corners, ids, rejected = cv2.aruco.detectMarkers(ud_image_gray, markerdict, parameters=markerparams)
+                    
+                    # find matching wafer points
+                    image_marker_centroid = []
+                    wafer_marker_centroid = []
+                    for idx in range(0, len(ids)):
+                        corner_points = corners[idx].reshape(4,2)
+                        #print(ids[idx], corner_points)
+                        cx = [p[0] for p in corner_points]
+                        cy = [p[1] for p in corner_points]
+                        image_centroid = [sum(cx) / len(corner_points), sum(cy) / len(corner_points)]
+                        wafer_centroid = param["marker"]["coord"][str(ids[idx,0])] + [100]
+                        image_marker_centroid.append(image_centroid)
+                        wafer_marker_centroid.append(wafer_centroid)
+                        
+                        #print("center of wmc : ", ids[idx, 0], wafer_marker_centroid)
+                        #print("center of imc : ", ids[idx, 0], image_marker_centroid)
+                        
+                        # write to image
+                        cv2.circle(ud_image_color, [round(c) for c in image_centroid], 1, (0, 0, 255), 2)
+                        cv2.line(ud_image_color, (round(newcamera_mtx[0,2])-100,round(newcamera_mtx[1,2])), (round(newcamera_mtx[0,2])+100,round(newcamera_mtx[1,2])), (0,0,255), 1, cv2.LINE_AA)
+                        cv2.line(ud_image_color, (round(newcamera_mtx[0,2]),round(newcamera_mtx[1,2])-100), (round(newcamera_mtx[0,2]),round(newcamera_mtx[1,2])+100), (0,0,255), 1, cv2.LINE_AA)
+                        
+                    cv2.imwrite("marker_centroid_"+job_file, ud_image_color)
+                    
+                    # camera pose
+                    image_pts_vec = np.array(image_marker_centroid)
+                    wafer_pts_vec = np.array(wafer_marker_centroid)
+                    
+                    #print("image marker centroid", image_marker_centroid)
+                    #print("wafer marker centroid", wafer_marker_centroid)
+                    _, rVec, tVec = cv2.solvePnP(wafer_pts_vec, image_pts_vec, newcamera_mtx, distorsion_mtx, 0)
+                    print(tVec)
+                    R, jacobian = cv2.Rodrigues(rVec)
+                    #print(R.T)
+                    #R = Rt.transpose()
+                    pos = -R * tVec.reshape(-1)
+                    print(pos)
+                    #print(pos)
+                    roll = math.atan2(-R[2][1], R[2][2])
+                    pitch = math.asin(R[2][0])
+                    yaw = math.atan2(-R[1][0], R[0][0])
+                    print("yaw : ",yaw*180/3.14)
+                    
                     
                     
                     p_dic = {}
