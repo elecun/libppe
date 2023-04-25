@@ -37,6 +37,17 @@ namespace libppe {
      */
     bool set_parameters(string parameterset);
 
+    /**
+     * @brief library initialize
+     */
+    void initialize();
+
+    /**
+     * @brief release and terminate the dynamic objects
+     * 
+     */
+    void finalize();
+
 } /* namespace */
 
 # endif

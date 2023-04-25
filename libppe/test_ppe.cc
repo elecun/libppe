@@ -114,10 +114,17 @@ int main(int argc, char** argv){
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
         //do estimation
+        libppe::initialize();
         if(libppe::set_parameters(_config.dump())){
             string out = libppe::estimate(_job.dump());
             console::info("Estimated results = {}", out);
         }
+
+        if(libppe::set_parameters(_config.dump())){
+            string out = libppe::estimate(_job.dump());
+            console::info("Estimated results = {}", out);
+        }
+        libppe::finalize();
 
         //calc time elapsed
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();

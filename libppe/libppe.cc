@@ -36,6 +36,22 @@ namespace libppe {
     /* internal variables */
     json _param;
     string _result = "{}";
+    static PyObject* _py_module = nullptr;
+
+    void initialize(){
+        Py_Initialize();
+        PyRun_SimpleString("import sys; import os; sys.path.append('.'); sys.path.append(os.getcwd())");
+        _py_module = PyImport_ImportModule(PYTHON_MDOULE_NAME);
+        if(_py_module==nullptr){
+            PyErr_Print();
+            throw std::runtime_error("Python Module import failed");
+        }
+    }
+
+    void finalize(){
+        Py_DECREF(_py_module);
+        Py_Finalize();
+    }
 
     /* pose estimation interface function */
     string estimate(string job_desc){
@@ -45,26 +61,14 @@ namespace libppe {
             return "{}";
         }
             
-
         _result.empty(); //clear
 
         try {
-            // python initialize
-            Py_Initialize();
-            PyRun_SimpleString("import sys; import os; sys.path.append('.'); sys.path.append(os.getcwd())");
-
-            //python module import
-            PyObject* _py_module = PyImport_ImportModule(PYTHON_MDOULE_NAME);
-            if(_py_module==nullptr){
-                PyErr_Print();
-                throw std::runtime_error("Python Module import failed");
-            }
 
             //interfacing python function
             PyObject* _py_func_estimate = PyObject_GetAttrString(_py_module, "estimate");
             if(_py_func_estimate==nullptr){
                 PyErr_Print();
-                Py_DECREF(_py_module);
                 throw std::runtime_error("It cannot be found estimate function in python module");
             }
 
@@ -74,12 +78,11 @@ namespace libppe {
             PyTuple_SetItem(_py_func_args, 0, PyUnicode_FromString(p.c_str()));
             PyTuple_SetItem(_py_func_args, 1, PyUnicode_FromString(job_desc.c_str()));
             PyObject* _py_result = PyObject_CallObject(_py_func_estimate, _py_func_args);
+            Py_DECREF(_py_func_args);
 
             if(_py_result==nullptr){
                 PyErr_Print();
                 Py_DECREF(_py_func_estimate);
-                Py_DECREF(_py_module);
-                Py_DECREF(_py_func_args);
             }
             else{
 
@@ -89,11 +92,6 @@ namespace libppe {
                 //termination python objects
                 Py_DECREF(_py_result);
                 Py_DECREF(_py_func_estimate);
-                Py_DECREF(_py_module);
-                Py_DECREF(_py_func_args);
-
-                //finalized python module
-                Py_Finalize();
             }
 
         }
