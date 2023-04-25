@@ -42,6 +42,10 @@ def estimate(json_camera_param, json_job_desc):
         # file existance check
         result_dic = {}
         if "files" in job and "path" in job:
+            distance = []
+            for d in job["laser_wafer_distance"]:
+                distance.append(d)
+                
             for job_file in job["files"]:
                 job_file_path = job["path"]+job_file
                 
@@ -71,43 +75,78 @@ def estimate(json_camera_param, json_job_desc):
                     corners, ids, rejected = cv2.aruco.detectMarkers(ud_image_gray, markerdict, parameters=markerparams)
                     
                     # find matching wafer points
-                    image_marker_centroid = []
-                    wafer_marker_centroid = []
+                    marker_centroid_pointset = []
+                    wafer_centroid_pointset = []
                     for idx in range(0, len(ids)):
                         corner_points = corners[idx].reshape(4,2)
-                        #print(ids[idx], corner_points)
-                        cx = [p[0] for p in corner_points]
-                        cy = [p[1] for p in corner_points]
-                        image_centroid = [sum(cx) / len(corner_points), sum(cy) / len(corner_points)]
-                        wafer_centroid = param["marker"]["coord"][str(ids[idx,0])] + [100]
-                        image_marker_centroid.append(image_centroid)
-                        wafer_marker_centroid.append(wafer_centroid)
+                        center_on_marker = np.mean(corner_points, axis=0, dtype=float)
+                        center_on_wafer = np.array(param["marker"]["coord"][str(ids[idx,0])])
+                        if center_on_marker.shape != center_on_wafer.shape:
+                            raise ValueError("Geometric pointset dimension is not same")
+                            
+                        marker_centroid_pointset.append(center_on_marker)
+                        wafer_centroid_pointset.append(center_on_wafer)
                         
                         # write to image
-                        cv2.circle(ud_image_color, [round(c) for c in image_centroid], 1, (0, 0, 255), 2)
-                        cv2.line(ud_image_color, (round(newcamera_mtx[0,2])-100,round(newcamera_mtx[1,2])), (round(newcamera_mtx[0,2])+100,round(newcamera_mtx[1,2])), (0,0,255), 1, cv2.LINE_AA)
-                        cv2.line(ud_image_color, (round(newcamera_mtx[0,2]),round(newcamera_mtx[1,2])-100), (round(newcamera_mtx[0,2]),round(newcamera_mtx[1,2])+100), (0,0,255), 1, cv2.LINE_AA)
-                        str_pos = "[%d] x=%2.2f,y=%2.2f,z=%2.2f"%(ids[idx], wafer_centroid[0], wafer_centroid[1], wafer_centroid[2])
-                        cv2.putText(ud_image_color, str_pos,(int(image_centroid[0]), int(image_centroid[1]) - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-        
-                    cv2.imwrite("marker_centroid_"+job_file, ud_image_color)
+                        cv2.circle(ud_image_color, center_on_marker.round().astype(int), 1, (0, 0, 255), 2)
+                        
+                        #optical center (cx, cy)
+                        cx = round(newcamera_mtx[0,2])
+                        cy = round(newcamera_mtx[1,2])
+                        cv2.line(ud_image_color, (cx-100,cy), (cx+100,cy), (0,0,255), 1, cv2.LINE_AA)
+                        cv2.line(ud_image_color, (cx,cy-100), (cx,cy+100), (0,0,255), 1, cv2.LINE_AA)
+                        
+                        # image center
+                        cv2.line(ud_image_color, (round(_raw_w/2)-100,round(_raw_h/2)), (round(_raw_w/2)+100,round(_raw_h/2)), (0,255,0), 1, cv2.LINE_AA)
+                        cv2.line(ud_image_color, (round(_raw_w/2),round(_raw_h/2)-100), (round(_raw_w/2),round(_raw_h/2)+100), (0,255,0), 1, cv2.LINE_AA)
+                        
+                        str_pos = "[%d] x=%2.2f,y=%2.2f"%(ids[idx], center_on_wafer[0], center_on_wafer[1])
+                        cv2.putText(ud_image_color, str_pos,(int(center_on_marker[0]), int(center_on_marker[1]) - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
                     
                     # camera pose
-                    image_pts_vec = np.array(image_marker_centroid)
-                    wafer_pts_vec = np.array(wafer_marker_centroid)
-   
+                    image_pts_vec = np.array(marker_centroid_pointset)
+                    wafer_pts_vec = np.array(wafer_centroid_pointset)
+                    wafer_pts_vec = np.append(wafer_pts_vec, np.zeros(shape=(np.size(wafer_pts_vec, axis=0), 1)),axis=1) # append Z column with 0
+                    print(wafer_pts_vec)
+                    
+                    # temporary calc : optical center
                     _, rVec, tVec = cv2.solvePnP(wafer_pts_vec, image_pts_vec, newcamera_mtx, distorsion_mtx, flags=cv2.SOLVEPNP_SQPNP)
-                    print(tVec)
-                    R, jacobian = cv2.Rodrigues(rVec)
+                    R, jacobian = cv2.Rodrigues(rVec) # rotation vector to matrix
+                    
+                    theta = np.linalg.norm(rVec) # rotation angle(radian)
+                    #print(np.rad2deg(theta))
+                    r_vec = np.array(rVec/theta).reshape(-1) # rotation unit vector
+                    
+                    # camera position
+                    #print("t vector : ", tVec)
+                    #print("r matrix : ", R.T)
+                    camera_position = np.matrix(-R.T)*(np.matrix(tVec))
+                    print("camera pos : ", camera_position)
+                    
+                    
+                    #print("rotation matrix transpose : ", R.T)
+                    #print("rotation matrix inverse : ", np.linalg.inv(R))
+                    
+                    axis = np.float32([[1,0,0], [0,1,0], [0,0,-1]]).reshape(-1,3)
+                    imgpts, jac = cv2.projectPoints(axis, rVec, tVec, newcamera_mtx, distorsion_mtx)
+                    corner = tuple(corners[0].ravel())
+                    #print((round(newcamera_mtx[0,2]),round(newcamera_mtx[1,2])))
+                    #print(tuple(round(c) for c in imgpts[0].ravel()))
+                    
+                    #print(imgpts)
+                    
+                    cv2.imwrite("marker_centroid_"+job_file, ud_image_color)
+                    
+                    
                     #print(R.T)
                     #R = Rt.transpose()
                     pos = -R * tVec.reshape(-1)
-                    print(pos)
+                    #print("pos", pos)
                     #print(pos)
                     roll = math.atan2(-R[2][1], R[2][2])
                     pitch = math.asin(R[2][0])
                     yaw = math.atan2(-R[1][0], R[0][0])
-                    print("yaw : ",yaw*180/3.14)
+                    #print("yaw : ",yaw*180/3.14)
                     
                     
                     
