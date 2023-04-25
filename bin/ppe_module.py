@@ -104,14 +104,20 @@ def estimate(json_camera_param, json_job_desc):
                         cv2.putText(ud_image_color, str_pos,(int(center_on_marker[0]), int(center_on_marker[1]) - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
                     
                     # camera pose
-                    image_pts_vec = np.array(marker_centroid_pointset)
-                    wafer_pts_vec = np.array(wafer_centroid_pointset)
-                    wafer_pts_vec = np.append(wafer_pts_vec, np.zeros(shape=(np.size(wafer_pts_vec, axis=0), 1)),axis=1) # append Z column with 0
-                    print(wafer_pts_vec)
+                    image_pts_vec = np.array(marker_centroid_pointset, dtype=np.double)
+                    wafer_pts_vec = np.array(wafer_centroid_pointset, dtype=np.double)
+                    wafer_pts_vec = np.append(wafer_pts_vec, np.zeros(shape=(np.size(wafer_pts_vec, axis=0), 1), dtype=np.double),axis=1) # append Z column with 0
                     
                     # temporary calc : optical center
-                    _, rVec, tVec = cv2.solvePnP(wafer_pts_vec, image_pts_vec, newcamera_mtx, distorsion_mtx, flags=cv2.SOLVEPNP_SQPNP)
+                    _, rVec, tVec = cv2.solvePnP(wafer_pts_vec, image_pts_vec, newcamera_mtx, distorsion_mtx, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
                     R, jacobian = cv2.Rodrigues(rVec) # rotation vector to matrix
+                    
+                    world_pts = np.array([[0.0, 60.0, 0.0]], dtype=np.double)
+                    print(wafer_pts_vec)
+                    imagePoints, jacobian = cv2.projectPoints(world_pts, rVec, tVec, newcamera_mtx, distorsion_mtx) # world to image coord
+                    print(imagePoints)
+                    for pts in imagePoints.reshape(-1,2):
+                        cv2.circle(ud_image_color, pts.round().astype(int), 1, (0, 255, 0), 2)
                     
                     theta = np.linalg.norm(rVec) # rotation angle(radian)
                     #print(np.rad2deg(theta))
@@ -121,7 +127,7 @@ def estimate(json_camera_param, json_job_desc):
                     #print("t vector : ", tVec)
                     #print("r matrix : ", R.T)
                     camera_position = np.matrix(-R.T)*(np.matrix(tVec))
-                    print("camera pos : ", camera_position)
+                    #print("camera pos : ", camera_position)
                     
                     
                     #print("rotation matrix transpose : ", R.T)
@@ -129,6 +135,7 @@ def estimate(json_camera_param, json_job_desc):
                     
                     axis = np.float32([[1,0,0], [0,1,0], [0,0,-1]]).reshape(-1,3)
                     imgpts, jac = cv2.projectPoints(axis, rVec, tVec, newcamera_mtx, distorsion_mtx)
+                    #print(imgpts)
                     corner = tuple(corners[0].ravel())
                     #print((round(newcamera_mtx[0,2]),round(newcamera_mtx[1,2])))
                     #print(tuple(round(c) for c in imgpts[0].ravel()))
