@@ -84,7 +84,7 @@ def estimate(json_camera_param, json_job_desc):
                     #ud_image_gray = cv2.bilateralFilter(ud_image_gray, -1, 10, 5)
                     #_, ud_image_binary = cv2.threshold(ud_image_gray, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
                     
-                    # find markers
+                    # find markers (API depends on the installed python version)
                     if python_version[0]==4 and python_version[1]<7:
                         corners, ids, rejected = cv2.aruco.detectMarkers(ud_image_gray, markerdict, parameters=markerparams)
                     else:
@@ -119,91 +119,94 @@ def estimate(json_camera_param, json_job_desc):
                         str_pos = "[%d] x=%2.2f,y=%2.2f"%(ids[idx], center_on_wafer[0], center_on_wafer[1])
                         cv2.putText(ud_image_color, str_pos,(int(center_on_marker[0]), int(center_on_marker[1]) - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                     
-                    # camera pose
-                    image_pts_vec = np.array(marker_centroid_pointset, dtype=np.double)
-                    wafer_pts_vec = np.array(wafer_centroid_pointset, dtype=np.double)
-                    wafer_pts_vec = np.append(wafer_pts_vec, np.zeros(shape=(np.size(wafer_pts_vec, axis=0), 1), dtype=np.double),axis=1) # append Z column with 0
-                    
-                    # temporary calc : optical center
-                    _, rVec, tVec = cv2.solvePnP(wafer_pts_vec, image_pts_vec, newcamera_mtx, distorsion_mtx, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
-                    R, jacobian = cv2.Rodrigues(rVec) # rotation vector to matrix
-                    
-                    # testing for coordinate conversion (world to image) --- ok
-                    test_world_pts = np.array([[20.0, 60.0, 0.0],[-20.0, 60.0, 0.0]], dtype=np.double)
-                    test_image_pts, jacobian = cv2.projectPoints(test_world_pts, rVec, tVec, newcamera_mtx, distorsion_mtx) # world to image coord (3D to 2D)
-                    print("test image points : ", test_image_pts)
-                    for pts in test_image_pts.reshape(-1,2):
-                        p = pts.round().astype(int)
-                        cv2.line(ud_image_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
-                        cv2.line(ud_image_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
-                        cv2.circle(ud_image_color, pts.round().astype(int), 1, (0, 0, 255), 2)
+                    if len(ids)>0: # if marker found
+                        # camera pose
+                        image_pts_vec = np.array(marker_centroid_pointset, dtype=np.double)
+                        wafer_pts_vec = np.array(wafer_centroid_pointset, dtype=np.double)
+                        wafer_pts_vec = np.append(wafer_pts_vec, np.zeros(shape=(np.size(wafer_pts_vec, axis=0), 1), dtype=np.double),axis=1) # append Z column with 0
                         
-                    
-                    # testing for coordinate conversion (image to world)
-                    uv = np.array([[999, 520, 1]], dtype=int).T
-                    print("test uv", uv.ravel())
-                    cv2.line(ud_image_color, (uv.ravel()[0]-20,uv.ravel()[1]), (uv.ravel()[0]+20,uv.ravel()[1]), (255,0,0), 1, cv2.LINE_AA)
-                    cv2.line(ud_image_color, (uv.ravel()[0],uv.ravel()[1]-20), (uv.ravel()[0],uv.ravel()[1]+20), (255,0,0), 1, cv2.LINE_AA)
-                    
-                    RMu = np.linalg.inv(R)*np.linalg.inv(newcamera_mtx)*uv
-                    print(type(tVec), tVec.shape)
-                    Rt = np.linalg.inv(newcamera_mtx)*uv
-                    print(Rt)
-                    
-                    #xyz_c = np.linalg.inv(newcamera_mtx).dot(uv)
-                    #xyz_c = xyz_c - tVec
-                    #XYZ = np.linalg.inv(R).dot(xyz_c)
-                    #print("world coord : ", XYZ)
-                    
-                    
-    #                 invR_x_invM_x_uv1=rotationMatrix.inv()*cameraMatrix.inv()*screenCoordinates;
-	# invR_x_tvec      =rotationMatrix.inv()*translationVector;
-	# wcPoint=(Z+invR_x_tvec.at<double>(2, 0))/invR_x_invM_x_uv1.at<double>(2, 0)*invR_x_invM_x_uv1-invR_x_tvec;
-	# cv::Point3f worldCoordinates(wcPoint.at<double>(0, 0), wcPoint.at<double>(1, 0), wcPoint.at<double>(2, 0));
-	# std::cerr << "World Coordinates" << worldCoordinates << std::endl << std::endl;
-	# std::cout 	<< screenCoordinates.at<double>(0, 0) << ","
-	# 		<< screenCoordinates.at<double>(1, 0) << ","
-	# 		<< worldCoordinates.x << ","
-	# 		<< worldCoordinates.y << std::endl;
-                    
-                    
-                    theta = np.linalg.norm(rVec) # rotation angle(radian)
-                    #print(np.rad2deg(theta))
-                    r_vec = np.array(rVec/theta).reshape(-1) # rotation unit vector
-                    
-                    # camera position
-                    #print("t vector : ", tVec)
-                    #print("r matrix : ", R.T)
-                    camera_position = np.matrix(-R.T)*(np.matrix(tVec))
-                    print("camera pos : ", camera_position)
-                    # for p in image_pts.reshape(-1,2):
-                    #     cv2.circle(ud_image_color, p.round().astype(int), 1, (0, 0, 255), 2)
+                        # temporary calc : optical center
+                        _, rVec, tVec = cv2.solvePnP(wafer_pts_vec, image_pts_vec, newcamera_mtx, distorsion_mtx, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
+                        R, jacobian = cv2.Rodrigues(rVec) # rotation vector to matrix
+                        
+                        # testing for coordinate conversion (world to image) --- ok
+                        test_world_pts = np.array([[20.0, 60.0, 0.0],[-20.0, 60.0, 0.0]], dtype=np.double)
+                        test_image_pts, jacobian = cv2.projectPoints(test_world_pts, rVec, tVec, newcamera_mtx, distorsion_mtx) # world to image coord (3D to 2D)
+                        print("test image points : ", test_image_pts)
+                        for pts in test_image_pts.reshape(-1,2):
+                            p = pts.round().astype(int)
+                            cv2.line(ud_image_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
+                            cv2.line(ud_image_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
+                            cv2.circle(ud_image_color, pts.round().astype(int), 1, (0, 0, 255), 2)
+                            
+                        
+                        # testing for coordinate conversion (image to world)
+                        uv = np.array([[999, 520, 1]], dtype=int).T
+                        print("test uv", uv.ravel())
+                        cv2.line(ud_image_color, (uv.ravel()[0]-20,uv.ravel()[1]), (uv.ravel()[0]+20,uv.ravel()[1]), (255,0,0), 1, cv2.LINE_AA)
+                        cv2.line(ud_image_color, (uv.ravel()[0],uv.ravel()[1]-20), (uv.ravel()[0],uv.ravel()[1]+20), (255,0,0), 1, cv2.LINE_AA)
+                        
+                        RMu = np.linalg.inv(R)*np.linalg.inv(newcamera_mtx)*uv
+                        print(type(tVec), tVec.shape)
+                        Rt = np.linalg.inv(newcamera_mtx)*uv
+                        print(Rt)
+                        
+                        #xyz_c = np.linalg.inv(newcamera_mtx).dot(uv)
+                        #xyz_c = xyz_c - tVec
+                        #XYZ = np.linalg.inv(R).dot(xyz_c)
+                        #print("world coord : ", XYZ)
+                    else:
+                        print("No markers found")
                     
                     
-                    #print("rotation matrix transpose : ", R.T)
-                    #print("rotation matrix inverse : ", np.linalg.inv(R))
+        #                 invR_x_invM_x_uv1=rotationMatrix.inv()*cameraMatrix.inv()*screenCoordinates;
+        # invR_x_tvec      =rotationMatrix.inv()*translationVector;
+        # wcPoint=(Z+invR_x_tvec.at<double>(2, 0))/invR_x_invM_x_uv1.at<double>(2, 0)*invR_x_invM_x_uv1-invR_x_tvec;
+        # cv::Point3f worldCoordinates(wcPoint.at<double>(0, 0), wcPoint.at<double>(1, 0), wcPoint.at<double>(2, 0));
+        # std::cerr << "World Coordinates" << worldCoordinates << std::endl << std::endl;
+        # std::cout 	<< screenCoordinates.at<double>(0, 0) << ","
+        # 		<< screenCoordinates.at<double>(1, 0) << ","
+        # 		<< worldCoordinates.x << ","
+        # 		<< worldCoordinates.y << std::endl;
+                        
+                        
+                        theta = np.linalg.norm(rVec) # rotation angle(radian)
+                        #print(np.rad2deg(theta))
+                        r_vec = np.array(rVec/theta).reshape(-1) # rotation unit vector
+                        
+                        # camera position
+                        #print("t vector : ", tVec)
+                        #print("r matrix : ", R.T)
+                        camera_position = np.matrix(-R.T)*(np.matrix(tVec))
+                        print("camera pos : ", camera_position)
+                        # for p in image_pts.reshape(-1,2):
+                        #     cv2.circle(ud_image_color, p.round().astype(int), 1, (0, 0, 255), 2)
+                        
+                        
+                        #print("rotation matrix transpose : ", R.T)
+                        #print("rotation matrix inverse : ", np.linalg.inv(R))
+                        
+                        axis = np.float32([[1,0,0], [0,1,0], [0,0,-1]]).reshape(-1,3)
+                        imgpts, jac = cv2.projectPoints(axis, rVec, tVec, newcamera_mtx, distorsion_mtx)
+                        #print(imgpts)
+                        corner = tuple(corners[0].ravel())
+                        #print((round(newcamera_mtx[0,2]),round(newcamera_mtx[1,2])))
+                        #print(tuple(round(c) for c in imgpts[0].ravel()))
+                        
+                        #print(imgpts)
+                        
+                        cv2.imwrite("marker_centroid_"+job_file, ud_image_color)
                     
-                    axis = np.float32([[1,0,0], [0,1,0], [0,0,-1]]).reshape(-1,3)
-                    imgpts, jac = cv2.projectPoints(axis, rVec, tVec, newcamera_mtx, distorsion_mtx)
-                    #print(imgpts)
-                    corner = tuple(corners[0].ravel())
-                    #print((round(newcamera_mtx[0,2]),round(newcamera_mtx[1,2])))
-                    #print(tuple(round(c) for c in imgpts[0].ravel()))
                     
-                    #print(imgpts)
-                    
-                    cv2.imwrite("marker_centroid_"+job_file, ud_image_color)
-                    
-                    
-                    #print(R.T)
-                    #R = Rt.transpose()
-                    pos = -R * tVec.reshape(-1)
-                    #print("pos", pos)
-                    #print(pos)
-                    roll = math.atan2(-R[2][1], R[2][2])
-                    pitch = math.asin(R[2][0])
-                    yaw = math.atan2(-R[1][0], R[0][0])
-                    #print("yaw : ",yaw*180/3.14)
+                        #print(R.T)
+                        #R = Rt.transpose()
+                        pos = -R * tVec.reshape(-1)
+                        #print("pos", pos)
+                        #print(pos)
+                        roll = math.atan2(-R[2][1], R[2][2])
+                        pitch = math.asin(R[2][0])
+                        yaw = math.atan2(-R[1][0], R[0][0])
+                        #print("yaw : ",yaw*180/3.14)
                     
                     
                     
