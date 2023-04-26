@@ -15,6 +15,8 @@ import math
 '''
 def estimate(json_camera_param, json_job_desc):
     
+    python_version = list(map(int, cv2.__version__.split(".")))
+    
     try:
         # load user parameters
         job = json.loads(json_job_desc)
@@ -30,11 +32,22 @@ def estimate(json_camera_param, json_job_desc):
         intrinsic_mtx = np.matrix([[float(param['fx']), 0.000000, float(param['cx'])], [0.000000, float(param['fy']), float(param['cy'])], [0.000000, 0.000000, 1.000000]])
         distorsion_mtx = np.matrix([[float(param['coeff_k1']), float(param['coeff_k2']), float(param['coeff_p1']), float(param['coeff_p2']), 0.]])
         newcamera_mtx, roi = cv2.getOptimalNewCameraMatrix(intrinsic_mtx, distorsion_mtx,(_w, _h), 1, (_w, _h))
+        newcamera_mtx = np.matrix(newcamera_mtx, dtype=float)
+        #print(np.matrix(newcamera_mtx, dtype=float))
         
         # marker
-        markerdict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
-        markerparams = cv2.aruco.DetectorParameters_create()
-        markerparams.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
+        if python_version[0]==4:
+            if python_version[1]<7:
+                markerdict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
+                markerparams = cv2.aruco.DetectorParameters_create()
+                markerparams.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
+            else:
+                markerdict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
+                markerparams = cv2.aruco.DetectorParameters()
+                markerparams.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
+                markerdetector = cv2.aruco.ArucoDetector(markerdict, markerparams)
+        else:
+            raise ValueError("Your python version is not supported")
         
         # camera coord. / transformation matrix
         coord = np.matrix([[1,0,0,float(param['coord'][0])],[0,1,0,float(param['coord'][1])],[0,0,1,float(param['coord'][2])],[0,0,0,1]])
@@ -72,7 +85,10 @@ def estimate(json_camera_param, json_job_desc):
                     #_, ud_image_binary = cv2.threshold(ud_image_gray, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
                     
                     # find markers
-                    corners, ids, rejected = cv2.aruco.detectMarkers(ud_image_gray, markerdict, parameters=markerparams)
+                    if python_version[0]==4 and python_version[1]<7:
+                        corners, ids, rejected = cv2.aruco.detectMarkers(ud_image_gray, markerdict, parameters=markerparams)
+                    else:
+                        corners, ids, rejected = markerdetector.detectMarkers(ud_image_gray)
                     
                     # find matching wafer points
                     marker_centroid_pointset = []
@@ -101,7 +117,7 @@ def estimate(json_camera_param, json_job_desc):
                         cv2.line(ud_image_color, (round(_raw_w/2),round(_raw_h/2)-100), (round(_raw_w/2),round(_raw_h/2)+100), (0,255,0), 1, cv2.LINE_AA)
                         
                         str_pos = "[%d] x=%2.2f,y=%2.2f"%(ids[idx], center_on_wafer[0], center_on_wafer[1])
-                        cv2.putText(ud_image_color, str_pos,(int(center_on_marker[0]), int(center_on_marker[1]) - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                        cv2.putText(ud_image_color, str_pos,(int(center_on_marker[0]), int(center_on_marker[1]) - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                     
                     # camera pose
                     image_pts_vec = np.array(marker_centroid_pointset, dtype=np.double)
@@ -112,12 +128,44 @@ def estimate(json_camera_param, json_job_desc):
                     _, rVec, tVec = cv2.solvePnP(wafer_pts_vec, image_pts_vec, newcamera_mtx, distorsion_mtx, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
                     R, jacobian = cv2.Rodrigues(rVec) # rotation vector to matrix
                     
-                    world_pts = np.array([[0.0, 60.0, 0.0]], dtype=np.double)
-                    print(wafer_pts_vec)
-                    imagePoints, jacobian = cv2.projectPoints(world_pts, rVec, tVec, newcamera_mtx, distorsion_mtx) # world to image coord
-                    print(imagePoints)
-                    for pts in imagePoints.reshape(-1,2):
-                        cv2.circle(ud_image_color, pts.round().astype(int), 1, (0, 255, 0), 2)
+                    # testing for coordinate conversion (world to image) --- ok
+                    test_world_pts = np.array([[20.0, 60.0, 0.0],[-20.0, 60.0, 0.0]], dtype=np.double)
+                    test_image_pts, jacobian = cv2.projectPoints(test_world_pts, rVec, tVec, newcamera_mtx, distorsion_mtx) # world to image coord (3D to 2D)
+                    print("test image points : ", test_image_pts)
+                    for pts in test_image_pts.reshape(-1,2):
+                        p = pts.round().astype(int)
+                        cv2.line(ud_image_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
+                        cv2.line(ud_image_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
+                        cv2.circle(ud_image_color, pts.round().astype(int), 1, (0, 0, 255), 2)
+                        
+                    
+                    # testing for coordinate conversion (image to world)
+                    uv = np.array([[999, 520, 1]], dtype=int).T
+                    print("test uv", uv.ravel())
+                    cv2.line(ud_image_color, (uv.ravel()[0]-20,uv.ravel()[1]), (uv.ravel()[0]+20,uv.ravel()[1]), (255,0,0), 1, cv2.LINE_AA)
+                    cv2.line(ud_image_color, (uv.ravel()[0],uv.ravel()[1]-20), (uv.ravel()[0],uv.ravel()[1]+20), (255,0,0), 1, cv2.LINE_AA)
+                    
+                    RMu = np.linalg.inv(R)*np.linalg.inv(newcamera_mtx)*uv
+                    print(type(tVec), tVec.shape)
+                    Rt = np.linalg.inv(newcamera_mtx)*uv
+                    print(Rt)
+                    
+                    #xyz_c = np.linalg.inv(newcamera_mtx).dot(uv)
+                    #xyz_c = xyz_c - tVec
+                    #XYZ = np.linalg.inv(R).dot(xyz_c)
+                    #print("world coord : ", XYZ)
+                    
+                    
+    #                 invR_x_invM_x_uv1=rotationMatrix.inv()*cameraMatrix.inv()*screenCoordinates;
+	# invR_x_tvec      =rotationMatrix.inv()*translationVector;
+	# wcPoint=(Z+invR_x_tvec.at<double>(2, 0))/invR_x_invM_x_uv1.at<double>(2, 0)*invR_x_invM_x_uv1-invR_x_tvec;
+	# cv::Point3f worldCoordinates(wcPoint.at<double>(0, 0), wcPoint.at<double>(1, 0), wcPoint.at<double>(2, 0));
+	# std::cerr << "World Coordinates" << worldCoordinates << std::endl << std::endl;
+	# std::cout 	<< screenCoordinates.at<double>(0, 0) << ","
+	# 		<< screenCoordinates.at<double>(1, 0) << ","
+	# 		<< worldCoordinates.x << ","
+	# 		<< worldCoordinates.y << std::endl;
+                    
                     
                     theta = np.linalg.norm(rVec) # rotation angle(radian)
                     #print(np.rad2deg(theta))
@@ -127,7 +175,9 @@ def estimate(json_camera_param, json_job_desc):
                     #print("t vector : ", tVec)
                     #print("r matrix : ", R.T)
                     camera_position = np.matrix(-R.T)*(np.matrix(tVec))
-                    #print("camera pos : ", camera_position)
+                    print("camera pos : ", camera_position)
+                    # for p in image_pts.reshape(-1,2):
+                    #     cv2.circle(ud_image_color, p.round().astype(int), 1, (0, 0, 255), 2)
                     
                     
                     #print("rotation matrix transpose : ", R.T)
