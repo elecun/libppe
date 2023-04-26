@@ -61,11 +61,11 @@ def estimate(json_camera_param, json_job_desc):
                 distance.append(d)
                 
             for job_file in job["files"]:
-                job_file_path = job["path"]+job_file
+                job_file_path = job["path"]+job_file #image file to be processed
                 
                 # estimation processing
                 if os.path.isfile(job_file_path): # if file exist
-                    print(job_file, "is processing...")
+                    print(job_file, "is now processing...")
                     
                     # image read and color conversion
                     raw_image = cv2.imread(job_file_path, cv2.IMREAD_UNCHANGED)
@@ -80,10 +80,10 @@ def estimate(json_camera_param, json_job_desc):
                     if _raw_h!=_h and _raw_w!=_w:
                         raise ValueError("Image shaoe is different from your configurations")
                     
-                    # preprocessing (invert, binarization)
+                    # preprocessing
                     ud_image_gray = cv2.bitwise_not(ud_image_gray)
-                    #ud_image_gray = cv2.bilateralFilter(ud_image_gray, -1, 10, 5)
-                    #_, ud_image_binary = cv2.threshold(ud_image_gray, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                    #ud_image_gray = cv2.bilateralFilter(ud_image_gray, -1, 10, 5) #bilateral filter for edge enhancement
+                    #_, ud_image_binary = cv2.threshold(ud_image_gray, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU) # binarization (marker loss occured)
                     
                     # find markers (API depends on the installed python version)
                     if python_version[0]==4 and python_version[1]<7:
@@ -100,6 +100,8 @@ def estimate(json_camera_param, json_job_desc):
                         center_on_wafer = np.array(param["marker"]["coord"][str(ids[idx,0])])
                         if center_on_marker.shape != center_on_wafer.shape:
                             raise ValueError("Geometric pointset dimension is not same")
+                        
+                        print(ids[idx], center_on_marker)
                             
                         marker_centroid_pointset.append(center_on_marker)
                         wafer_centroid_pointset.append(center_on_wafer)
@@ -118,13 +120,13 @@ def estimate(json_camera_param, json_job_desc):
                         cv2.line(ud_image_color, (round(_raw_w/2)-100,round(_raw_h/2)), (round(_raw_w/2)+100,round(_raw_h/2)), (0,255,0), 1, cv2.LINE_AA)
                         cv2.line(ud_image_color, (round(_raw_w/2),round(_raw_h/2)-100), (round(_raw_w/2),round(_raw_h/2)+100), (0,255,0), 1, cv2.LINE_AA)
                         
-                        print("diff_x", cx-round(_raw_w/2))
-                        print("diff_y", cy-round(_raw_h/2))
+                        #print("diff_x", cx-round(_raw_w/2))
+                        #print("diff_y", cy-round(_raw_h/2))
                         
                         str_pos = "[%d] x=%2.2f,y=%2.2f"%(ids[idx], center_on_wafer[0], center_on_wafer[1])
                         cv2.putText(ud_image_color, str_pos,(int(center_on_marker[0]), int(center_on_marker[1]) - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                     
-                    if len(ids)>0: # if marker found
+                    if len(ids)>3: # if marker found
                         # camera pose
                         image_pts_vec = np.array(marker_centroid_pointset, dtype=np.double)
                         wafer_pts_vec = np.array(wafer_centroid_pointset, dtype=np.double)
@@ -149,16 +151,17 @@ def estimate(json_camera_param, json_job_desc):
                             
                         
                         # testing for coordinate conversion (image to world)
-                        uv = np.array([[640, 480, 1]], dtype=int).T
+                        print("optical center position(pixel) : ", cx, cy)
+                        uv = np.array([[684, 412, 1]], dtype=int).T
                         cv2.line(ud_image_color, (uv.ravel()[0]-20,uv.ravel()[1]), (uv.ravel()[0]+20,uv.ravel()[1]), (255,0,0), 1, cv2.LINE_AA)
                         cv2.line(ud_image_color, (uv.ravel()[0],uv.ravel()[1]-20), (uv.ravel()[0],uv.ravel()[1]+20), (255,0,0), 1, cv2.LINE_AA)
                         
                         R_1t = np.asmatrix(np.linalg.inv(R)*np.asmatrix(tVec))
-                        R_1M_1 = np.asmatrix(np.linalg.inv(R))*np.asmatrix(np.linalg.inv(intrinsic_mtx))
+                        R_1M_1 = np.asmatrix(np.linalg.inv(R))*np.asmatrix(np.linalg.inv(newcamera_mtx))
                         R_1M_1uv = R_1M_1*np.asmatrix(uv)
                         s = 100 + R_1t[2,0]/R_1M_1uv[2,0]
                         
-                        P = np.asmatrix(np.linalg.inv(R))*(s*np.asmatrix(np.linalg.inv(intrinsic_mtx))*np.asmatrix(uv)-np.asmatrix(tVec))
+                        P = np.asmatrix(np.linalg.inv(R))*(s*np.asmatrix(np.linalg.inv(newcamera_mtx))*np.asmatrix(uv)-np.asmatrix(tVec))
                         print("P",P)
                         
                         # testing for coordinate conversion (world to image) --- ok
@@ -198,16 +201,7 @@ def estimate(json_camera_param, json_job_desc):
                     else:
                         print("No markers found")
                     
-                    
-        #                 invR_x_invM_x_uv1=rotationMatrix.inv()*cameraMatrix.inv()*screenCoordinates;
-        # invR_x_tvec      =rotationMatrix.inv()*translationVector;
-        # wcPoint=(Z+invR_x_tvec.at<double>(2, 0))/invR_x_invM_x_uv1.at<double>(2, 0)*invR_x_invM_x_uv1-invR_x_tvec;
-        # cv::Point3f worldCoordinates(wcPoint.at<double>(0, 0), wcPoint.at<double>(1, 0), wcPoint.at<double>(2, 0));
-        # std::cerr << "World Coordinates" << worldCoordinates << std::endl << std::endl;
-        # std::cout 	<< screenCoordinates.at<double>(0, 0) << ","
-        # 		<< screenCoordinates.at<double>(1, 0) << ","
-        # 		<< worldCoordinates.x << ","
-        # 		<< worldCoordinates.y << std::endl;
+                
                         
                         
                         theta = np.linalg.norm(rVec) # rotation angle(radian)
@@ -267,10 +261,12 @@ def estimate(json_camera_param, json_job_desc):
                     p_dic["distance"] = 0.0
                     
                     result_dic[job_file] = p_dic
-    
+                else:
+                    ValueError("No image file in the path")
             # output to return
             json_result = json.dumps(result_dic)
-        
+        else:
+            raise ValueError("files and path configuration are not defined")
     except json.decoder.JSONDecodeError :
         print("Decoding Job Description has failed")
     except ValueError as e:
