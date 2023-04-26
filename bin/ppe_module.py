@@ -8,6 +8,7 @@ import os.path
 import torch
 import torchvision
 import math
+import argparse
 
 
 '''
@@ -104,7 +105,8 @@ def estimate(json_camera_param, json_job_desc):
                         wafer_centroid_pointset.append(center_on_wafer)
                         
                         # write to image
-                        cv2.circle(ud_image_color, center_on_marker.round().astype(int), 1, (0, 0, 255), 2)
+                        #cv2.circle(ud_image_color, center_on_marker.round().astype(int), 1, (0, 0, 255), 2)
+                        cv2.circle(ud_image_color, tuple(center_on_marker.round().astype(int).reshape(1,-1)[0]), 1, (0, 0, 255), 2)
                         
                         #optical center (cx, cy)
                         cx = round(newcamera_mtx[0,2])
@@ -116,6 +118,9 @@ def estimate(json_camera_param, json_job_desc):
                         cv2.line(ud_image_color, (round(_raw_w/2)-100,round(_raw_h/2)), (round(_raw_w/2)+100,round(_raw_h/2)), (0,255,0), 1, cv2.LINE_AA)
                         cv2.line(ud_image_color, (round(_raw_w/2),round(_raw_h/2)-100), (round(_raw_w/2),round(_raw_h/2)+100), (0,255,0), 1, cv2.LINE_AA)
                         
+                        print("diff_x", cx-round(_raw_w/2))
+                        print("diff_y", cy-round(_raw_h/2))
+                        
                         str_pos = "[%d] x=%2.2f,y=%2.2f"%(ids[idx], center_on_wafer[0], center_on_wafer[1])
                         cv2.putText(ud_image_color, str_pos,(int(center_on_marker[0]), int(center_on_marker[1]) - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                     
@@ -125,11 +130,12 @@ def estimate(json_camera_param, json_job_desc):
                         wafer_pts_vec = np.array(wafer_centroid_pointset, dtype=np.double)
                         wafer_pts_vec = np.append(wafer_pts_vec, np.zeros(shape=(np.size(wafer_pts_vec, axis=0), 1), dtype=np.double),axis=1) # append Z column with 0
                         
-                        # temporary calc : optical center
+                        # calc 2D-3D correnspondance
                         _, rVec, tVec = cv2.solvePnP(wafer_pts_vec, image_pts_vec, newcamera_mtx, distorsion_mtx, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
                         R, jacobian = cv2.Rodrigues(rVec) # rotation vector to matrix
                         
                         # testing for coordinate conversion (world to image) --- ok
+                        '''
                         test_world_pts = np.array([[20.0, 60.0, 0.0],[-20.0, 60.0, 0.0]], dtype=np.double)
                         test_image_pts, jacobian = cv2.projectPoints(test_world_pts, rVec, tVec, newcamera_mtx, distorsion_mtx) # world to image coord (3D to 2D)
                         print("test image points : ", test_image_pts)
@@ -137,24 +143,58 @@ def estimate(json_camera_param, json_job_desc):
                             p = pts.round().astype(int)
                             cv2.line(ud_image_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
                             cv2.line(ud_image_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
-                            cv2.circle(ud_image_color, pts.round().astype(int), 1, (0, 0, 255), 2)
+                            #cv2.circle(ud_image_color, pts.round().astype(int), 1, (0, 0, 255), 2)
+                            cv2.circle(ud_image_color, tuple(pts.round().astype(int).reshape(1,-1)[0]), 1, (0, 0, 255), 2)
+                        '''
                             
                         
                         # testing for coordinate conversion (image to world)
-                        uv = np.array([[999, 520, 1]], dtype=int).T
-                        print("test uv", uv.ravel())
+                        uv = np.array([[640, 480, 1]], dtype=int).T
                         cv2.line(ud_image_color, (uv.ravel()[0]-20,uv.ravel()[1]), (uv.ravel()[0]+20,uv.ravel()[1]), (255,0,0), 1, cv2.LINE_AA)
                         cv2.line(ud_image_color, (uv.ravel()[0],uv.ravel()[1]-20), (uv.ravel()[0],uv.ravel()[1]+20), (255,0,0), 1, cv2.LINE_AA)
                         
-                        RMu = np.linalg.inv(R)*np.linalg.inv(newcamera_mtx)*uv
-                        print(type(tVec), tVec.shape)
-                        Rt = np.linalg.inv(newcamera_mtx)*uv
-                        print(Rt)
+                        R_1t = np.asmatrix(np.linalg.inv(R)*np.asmatrix(tVec))
+                        R_1M_1 = np.asmatrix(np.linalg.inv(R))*np.asmatrix(np.linalg.inv(intrinsic_mtx))
+                        R_1M_1uv = R_1M_1*np.asmatrix(uv)
+                        s = 100 + R_1t[2,0]/R_1M_1uv[2,0]
+                        
+                        P = np.asmatrix(np.linalg.inv(R))*(s*np.asmatrix(np.linalg.inv(intrinsic_mtx))*np.asmatrix(uv)-np.asmatrix(tVec))
+                        print("P",P)
+                        
+                        # testing for coordinate conversion (world to image) --- ok
+                        '''
+                        test_world_pts = np.array([[20.0, 60.0, 0.0],[-20.0, 60.0, 0.0]], dtype=np.double)
+                        test_image_pts, jacobian = cv2.projectPoints(test_world_pts, rVec, tVec, newcamera_mtx, distorsion_mtx) # world to image coord (3D to 2D)
+                        print("test image points : ", test_image_pts)
+                        for pts in test_image_pts.reshape(-1,2):
+                            p = pts.round().astype(int)
+                            cv2.line(ud_image_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
+                            cv2.line(ud_image_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
+                            cv2.circle(ud_image_color, tuple(pts.round().astype(int).reshape(1,-1)[0]), 1, (0, 0, 255), 2)
+                        '''
+                        
+                        
+                        '''
+                        A = np.linalg.inv(R)*np.linalg.inv(newcamera_mtx)*uv
+                        print("A", A[0,0])
+                        print("tvec",tVec)
+                        Rt = np.linalg.inv(newcamera_mtx)*tVec
+                        print("Rt", Rt[0,0])
+                        Rt_list = np.array(Rt).reshape(-1,).tolist()
+                        print("rt", np.array(Rt).reshape(-1,).tolist())
+                        
+                        wcPoint=(0+Rt[2,0])/A[2,0]*A-Rt
+                        print("world",wcPoint)
+                        '''
+                        
+                        #print(Rt, Rt.shape)
                         
                         #xyz_c = np.linalg.inv(newcamera_mtx).dot(uv)
                         #xyz_c = xyz_c - tVec
                         #XYZ = np.linalg.inv(R).dot(xyz_c)
                         #print("world coord : ", XYZ)
+                        
+                        cv2.imwrite("marker_centroid_"+job_file, ud_image_color)
                     else:
                         print("No markers found")
                     
@@ -195,7 +235,7 @@ def estimate(json_camera_param, json_job_desc):
                         
                         #print(imgpts)
                         
-                        cv2.imwrite("marker_centroid_"+job_file, ud_image_color)
+                        #cv2.imwrite("marker_centroid_"+job_file, raw_image)
                     
                     
                         #print(R.T)
@@ -237,3 +277,18 @@ def estimate(json_camera_param, json_job_desc):
         print(e)
     
     return json_result
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', nargs='?', required=True, help="Configuration file")
+    parser.add_argument('--job', nargs='?', required=True, help="Job file")
+    args = parser.parse_args()
+    
+    with open(args.config, 'r') as file:
+        config = json.load(file)
+    with open(args.job, 'r') as file:
+        job = json.load(file)
+    
+    # call estimate function
+    estimate(json.dumps(config), json.dumps(job))
