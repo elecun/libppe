@@ -117,11 +117,12 @@ def estimate(json_camera_param, json_job_desc):
             if "coord" not in process_param["marker"]:
                 raise UndefinedParamError("Marker coordinates are not defined")
         _wafer_marker_pos = json.loads(json.dumps(process_param["marker"]["coord"]))
-        _wafer_marker_pos = {int(k):[int(i)+_wafer_diameter for i in v] for k,v in _wafer_marker_pos.items()}
+        _wafer_marker_pos = {int(k):[int(i)+_wafer_diameter/2 for i in v] for k,v in _wafer_marker_pos.items()}
         
         # set camera parameter
         intrinsic_mtx = np.matrix([[_fx, 0.000000, _cx], [0.000000, _fy, _cy], [0.000000, 0.000000, 1.000000]])
         distorsion_mtx = np.matrix([_k1, _k2, _p1, _p2, 0.])
+        initdistorsion_mtx = np.matrix([0., 0., 0., 0., 0.])
         newcamera_mtx, roi = cv2.getOptimalNewCameraMatrix(intrinsic_mtx, distorsion_mtx,(_w, _h), 1)
         newcamera_mtx = np.matrix(newcamera_mtx, dtype=float)
         
@@ -192,8 +193,9 @@ def estimate(json_camera_param, json_job_desc):
                 marker_centroids_on_wafer.append(_wafer_marker_pos[marker_id])
             marker_centroids_on_image = np.array(marker_centroids_on_image)
             marker_centroids_on_wafer = np.array(marker_centroids_on_wafer)
+            marker_centroids_on_wafer = np.append(marker_centroids_on_wafer, np.zeros(shape=(np.size(marker_centroids_on_wafer, axis=0), 1), dtype=np.double),axis=1) # column add
             
-            if marker_centroids_on_image.size != marker_centroids_on_wafer.size:
+            if marker_centroids_on_image.shape[0] != marker_centroids_on_wafer.shape[0]:
                 raise ValueError("Marker pointset dimension is not same")
             
             # save detected image (draw point on marker center point)
@@ -207,8 +209,20 @@ def estimate(json_camera_param, json_job_desc):
             if ids.size>3:
                 pass
                 # compute 2D-3D corredpondence with Perspective N Point
-                #_, rVec, tVec = cv2.solvePnP(wafer_pts_vec, image_pts_vec, newcamera_mtx, distorsion_mtx, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
+                #_, rVec, tVec = cv2.solvePnP(marker_centroids_on_wafer, marker_centroids_on_image, intrinsic_mtx, initdistorsion_mtx, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
+                #print(tVec)
                 #R, jacobian = cv2.Rodrigues(rVec) # rotation vector to matrix
+                
+                # testing for coordinate conversion (3D to 2D) --- ok
+                #test_world_pts = np.array([[-149.0, 206.0, 0.0]], dtype=np.double)
+                #test_image_pts, jacobian = cv2.projectPoints(test_world_pts, rVec, tVec, intrinsic_mtx, initdistorsion_mtx) # world to image coord (3D to 2D)
+                #print("test image points : ", test_image_pts)
+                #for pts in test_image_pts.reshape(-1,2):
+                #    p = pts.round().astype(int)
+                #    cv2.line(undist_raw_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
+                #    cv2.line(undist_raw_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
+                #    cv2.circle(undist_raw_color, tuple(pts.round().astype(int).reshape(1,-1)[0]), 1, (0, 0, 255), 2)
+                    
                 
                 p_dic = {}
                 p_dic["wafer_x"] = 0.0
