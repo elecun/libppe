@@ -5,8 +5,8 @@ import json
 import cv2
 import numpy as np
 import os.path
-import torch
-import torchvision
+#import torch
+#import torchvision
 import math
 import argparse
 
@@ -29,9 +29,20 @@ def undistort_unproject_pts(pts_uv, camera_matrix, dist_coefs):
     return pts_3d
 
 '''
+ Undefined Parameter key Exception
+'''
+class UndefinedParamError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg
+    
+'''
  estimation processing with already saved image frame (from job description)
 '''
 def estimate(json_camera_param, json_job_desc):
+    result_dic = {} # estimated results (dictionary type for converting json)
     
     '''
     load job & parameters
@@ -77,11 +88,11 @@ def estimate(json_camera_param, json_job_desc):
         if "resolution" in process_param:
             _w, _h = process_param["resolution"]
         else:
-            raise ValueError("Image resultion configurations are not defined")
+            raise UndefinedParamError("Image resultion configurations are not defined")
         
         # read camera parameters
         if "fx" not in process_param or "fy" not in process_param or "cx" not in process_param or "cy" not in process_param or "coeff_k1" not in process_param or "coeff_k2" not in process_param or "coeff_p1" not in process_param or "coeff_p2" not in process_param:
-            raise ValueError("Some camera parameter(s) is missing")
+            raise UndefinedParamError("Some camera parameter(s) is missing")
         else:
             _fx = float(process_param["fx"])
             _fy = float(process_param["fy"])
@@ -93,21 +104,20 @@ def estimate(json_camera_param, json_job_desc):
             _p2 = float(process_param["coeff_p2"])
             
         if "wafer" not in process_param:
-            raise ValueError("wafer is not defined")
+            raise UndefinedParamError("wafer is not defined")
         else:
             if "diameter" not in process_param["wafer"]:
-                raise ValueError("wafer diameter is not defined")
+                raise UndefinedParamError("wafer diameter is not defined")
         _wafer_diameter = float(process_param["wafer"]["diameter"])
         
         # read reference wafer position as dictionary
         if "marker" not in process_param:
-            raise ValueError("marker is not defined")
+            raise UndefinedParamError("marker is not defined")
         else:
             if "coord" not in process_param["marker"]:
-                raise ValueError("Marker coordinates are not defined")
+                raise UndefinedParamError("Marker coordinates are not defined")
         _wafer_marker_pos = json.loads(json.dumps(process_param["marker"]["coord"]))
         _wafer_marker_pos = {int(k):[int(i)+_wafer_diameter for i in v] for k,v in _wafer_marker_pos.items()}
-        print(_wafer_marker_pos)
         
         # set camera parameter
         intrinsic_mtx = np.matrix([[_fx, 0.000000, _cx], [0.000000, _fy, _cy], [0.000000, 0.000000, 1.000000]])
@@ -131,24 +141,23 @@ def estimate(json_camera_param, json_job_desc):
         
         # image files and path prefix check
         if "files" not in process_job or "path" not in process_job:
-            raise ValueError("files and path are not defined")
+            raise UndefinedParamError("files and path are not defined")
         _image_files = np.array(process_job["files"])
         _path_prefix = process_job["path"]
         image_files_path = np.array([_path_prefix+f for f in _image_files])
         
         # measured distance check
         if "laser_wafer_distance" not in process_job:
-            raise ValueError("laser_wafer_distance is not defined")
+            raise UndefinedParamError("laser_wafer_distance is not defined")
         _laser_distance = np.array(process_job["laser_wafer_distance"])
         
         # file existance check
         for src_image in image_files_path:
             if not os.path.isfile(src_image):
-                raise ValueError("%s file does not exist"%src_image)
+                raise FileNotFoundError("%s file does not exist"%src_image)
             
         
         # processing
-        result_dic = {} # estimated results (dictionary type for converting json)
         for filename in _image_files:
             src_image = _path_prefix+filename # image full path
 
@@ -181,8 +190,11 @@ def estimate(json_camera_param, json_job_desc):
                 corner = corners[idx].squeeze()                
                 marker_centroids_on_image.append(np.mean(corner, axis=0, dtype=float))
                 marker_centroids_on_wafer.append(_wafer_marker_pos[marker_id])
-            marker_centroids_on_image = np.array(marker_centroids_on_image)           
-            marker_centroids_on_wafer = np.array(marker_centroids_on_wafer)           
+            marker_centroids_on_image = np.array(marker_centroids_on_image)
+            marker_centroids_on_wafer = np.array(marker_centroids_on_wafer)
+            
+            if marker_centroids_on_image.size != marker_centroids_on_wafer.size:
+                raise ValueError("Marker pointset dimension is not same")
             
             # save detected image (draw point on marker center point)
             if _save_result:
@@ -221,14 +233,11 @@ def estimate(json_camera_param, json_job_desc):
         json_result = json.dumps(result_dic)
         
     except json.decoder.JSONDecodeError :
-        print("Decoding Job Description has failed")
-        json_result = json.dumps(result_dic)
-        return json_result
-    except ValueError as e:
-        print(e)
-        json_result = json.dumps(result_dic)
-        return json_result
-    
+        print("Error : Decoding Job Description has failed")
+    except (ValueError, UndefinedParamError) as e:
+        print("Error : ",e)
+
+    json_result = json.dumps(result_dic)
     return json_result
 
 

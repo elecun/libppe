@@ -2,7 +2,7 @@
     "use_camera":0,
     "verbose":1,
     "save_result":1,
-    "path":"/home/hwang-exp/dev/libppe/bin/testset/",
+    "path":"/home/libppe/bin/testset/",
     "files":["pos_0.png","pos_1.png"],
     "laser_wafer_distance":[100.0, 100.0]
 }
