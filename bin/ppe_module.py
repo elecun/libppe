@@ -122,7 +122,6 @@ def estimate(json_camera_param, json_job_desc):
         # set camera parameter
         intrinsic_mtx = np.matrix([[_fx, 0.000000, _cx], [0.000000, _fy, _cy], [0.000000, 0.000000, 1.000000]])
         distorsion_mtx = np.matrix([_k1, _k2, _p1, _p2, 0.])
-        initdistorsion_mtx = np.matrix([0., 0., 0., 0., 0.])
         newcamera_mtx, roi = cv2.getOptimalNewCameraMatrix(intrinsic_mtx, distorsion_mtx,(_w, _h), 1)
         newcamera_mtx = np.matrix(newcamera_mtx, dtype=float)
         
@@ -202,22 +201,32 @@ def estimate(json_camera_param, json_job_desc):
             if _save_result:
                 for pts in marker_centroids_on_image:
                     p = tuple(pts.round().astype(int))
+                    str_pos = "x=%2.2f,y=%2.2f"%(pts[0], pts[1])
+                    cv2.putText(undist_raw_color, str_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
                     cv2.line(undist_raw_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
                     cv2.line(undist_raw_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
                 cv2.imwrite(_path_prefix+"markers_"+filename, undist_raw_color)
                 
             if ids.size>3:
-                pass
-                # compute 2D-3D corredpondence with Perspective N Point
-                #_, rVec, tVec = cv2.solvePnP(marker_centroids_on_wafer, marker_centroids_on_image, intrinsic_mtx, initdistorsion_mtx, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
-                #print(tVec)
-                #R, jacobian = cv2.Rodrigues(rVec) # rotation vector to matrix
+                # compute 2D-3D corredpondence with Perspective N Point'
+                # note] use undistorted image points to solve, then appply the distortion coefficient and camera matrix as pin hole camera model
+                _, rVec, tVec = cv2.solvePnP(marker_centroids_on_wafer, marker_centroids_on_image, cameraMatrix=intrinsic_mtx, distCoeffs=None, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
+                R, jacobian = cv2.Rodrigues(rVec) # rotation vector to matrix
                 
                 # testing for coordinate conversion (3D to 2D) --- ok
-                #test_world_pts = np.array([[-149.0, 206.0, 0.0]], dtype=np.double)
-                #test_image_pts, jacobian = cv2.projectPoints(test_world_pts, rVec, tVec, intrinsic_mtx, initdistorsion_mtx) # world to image coord (3D to 2D)
-                #print("test image points : ", test_image_pts)
-                #for pts in test_image_pts.reshape(-1,2):
+                # note use optimal camera matrix and distortion coefficients
+                world_pts = np.array([[149.45, 206.21, 0.0]], dtype=np.double)
+                image_pts, jacobian = cv2.projectPoints(world_pts, rVec, tVec, newcamera_mtx, distorsion_mtx) # world to image coord (3D to 2D)
+                if _save_result:
+                    pts = (image_pts.round().astype(int)).squeeze()
+                    str_pos = "x=%2.2f,y=%2.2f"%(pts[0], pts[1])
+                    cv2.putText(undist_raw_color, str_pos,(pts[0]+10, pts[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                    cv2.line(undist_raw_color, (pts[0]-10,pts[1]), (pts[0]+10,pts[1]), (0,255,255), 1, cv2.LINE_AA)
+                    cv2.line(undist_raw_color, (pts[0],pts[1]-10), (pts[0],pts[1]+10), (0,255,255), 1, cv2.LINE_AA)
+                    cv2.imwrite(_path_prefix+"temp_"+filename, undist_raw_color)
+                    print("saved image")
+                    
+                # for pts in test_image_pts.reshape(-1,2):
                 #    p = pts.round().astype(int)
                 #    cv2.line(undist_raw_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
                 #    cv2.line(undist_raw_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
