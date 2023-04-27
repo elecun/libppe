@@ -1,0 +1,6 @@
+{
+    "use_camera":0,
+    "path":"/home/hwang-exp/dev/libppe/bin/testset/",
+    "files":["pos_y_0.png","pos_y_2.png", "pos_y_3.png","pos_y_4.png","pos_y_5.png"],
+    "laser_wafer_distance":[100.0, 100.0, 100.0, 100.0, 100.0]
+}

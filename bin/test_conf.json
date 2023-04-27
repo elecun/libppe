@@ -17,7 +17,7 @@
     "model": "ov2311_uc762c",
   
     "wafer": {
-      "diameter": 300,
+      "diameter": 300.0,
       "thickness": 0.7
     },
   
