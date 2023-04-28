@@ -199,10 +199,15 @@ def estimate(json_camera_param, json_job_desc):
             
             # save detected image (draw point on marker center point)
             if _save_result:
-                for pts in marker_centroids_on_image:
+                for idx, pts in enumerate(marker_centroids_on_image):
                     p = tuple(pts.round().astype(int))
-                    str_pos = "x=%2.2f,y=%2.2f"%(pts[0], pts[1])
-                    cv2.putText(undist_raw_color, str_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                    
+                    str_image_pos = "x=%2.2f,y=%2.2f"%(pts[0], pts[1])
+                    str_world_pos = "x=%2.2f,y=%2.2f"%(marker_centroids_on_wafer[idx][0], marker_centroids_on_wafer[idx][1])
+                    if _verbose:
+                        print("marker :",str_image_pos, str_world_pos)
+                    cv2.putText(undist_raw_color, str_image_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                    cv2.putText(undist_raw_color, str_world_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
                     cv2.line(undist_raw_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
                     cv2.line(undist_raw_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
                 cv2.imwrite(_path_prefix+"markers_"+filename, undist_raw_color)
@@ -210,28 +215,39 @@ def estimate(json_camera_param, json_job_desc):
             if ids.size>3:
                 # compute 2D-3D corredpondence with Perspective N Point'
                 # note] use undistorted image points to solve, then appply the distortion coefficient and camera matrix as pin hole camera model
-                _, rVec, tVec = cv2.solvePnP(marker_centroids_on_wafer, marker_centroids_on_image, cameraMatrix=intrinsic_mtx, distCoeffs=None, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
+                _, rVec, tVec = cv2.solvePnP(marker_centroids_on_wafer, marker_centroids_on_image, cameraMatrix=newcamera_mtx, distCoeffs=distorsion_mtx, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
+                _, prVec, ptVec = cv2.solvePnP(marker_centroids_on_wafer, marker_centroids_on_image, cameraMatrix=intrinsic_mtx, distCoeffs=None, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
                 R, jacobian = cv2.Rodrigues(rVec) # rotation vector to matrix
                 
                 # testing for coordinate conversion (3D to 2D) --- ok
                 # note use optimal camera matrix and distortion coefficients
-                world_pts = np.array([[149.45, 206.21, 0.0]], dtype=np.double)
-                image_pts, jacobian = cv2.projectPoints(world_pts, rVec, tVec, newcamera_mtx, distorsion_mtx) # world to image coord (3D to 2D)
+                world_pts = np.array([[130.0, 210.0, 0.0]], dtype=np.double)
+                image_pts, jacobian = cv2.projectPoints(world_pts, rVec, tVec, cameraMatrix=newcamera_mtx, distCoeffs=distorsion_mtx) # world to image coord (3D to 2D)
                 if _save_result:
-                    pts = (image_pts.round().astype(int)).squeeze()
-                    str_pos = "x=%2.2f,y=%2.2f"%(pts[0], pts[1])
-                    cv2.putText(undist_raw_color, str_pos,(pts[0]+10, pts[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                    cv2.line(undist_raw_color, (pts[0]-10,pts[1]), (pts[0]+10,pts[1]), (0,255,255), 1, cv2.LINE_AA)
-                    cv2.line(undist_raw_color, (pts[0],pts[1]-10), (pts[0],pts[1]+10), (0,255,255), 1, cv2.LINE_AA)
+                    image_pts = image_pts.squeeze()
+                    str_pos = "x=%2.2f,y=%2.2f"%(image_pts[0], image_pts[1])
+                    image_ptsi = (image_pts.round().astype(int))
+                    cv2.putText(undist_raw_color, str_pos,(image_ptsi[0]+10, image_ptsi[1]+20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+                    cv2.line(undist_raw_color, (image_ptsi[0]-10,image_ptsi[1]), (image_ptsi[0]+10,image_ptsi[1]), (0,255,255), 1, cv2.LINE_AA)
+                    cv2.line(undist_raw_color, (image_ptsi[0],image_ptsi[1]-10), (image_ptsi[0],image_ptsi[1]+10), (0,255,255), 1, cv2.LINE_AA)
                     cv2.imwrite(_path_prefix+"temp_"+filename, undist_raw_color)
-                    print("saved image")
-                    
-                # for pts in test_image_pts.reshape(-1,2):
-                #    p = pts.round().astype(int)
-                #    cv2.line(undist_raw_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
-                #    cv2.line(undist_raw_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
-                #    cv2.circle(undist_raw_color, tuple(pts.round().astype(int).reshape(1,-1)[0]), 1, (0, 0, 255), 2)
-                    
+                
+                
+                # testing for coordinate conversion (2D to 3D)
+                #image_pts = np.array([[275.66, 411.34]], dtype=float) # world = (130, 210)
+                #world_pts = cv2.undistortPoints(np.expand_dims(image_pts, axis=1), cameraMatrix=newcamera_mtx, distCoeffs=distorsion_mtx, R=None, P=None)
+                #world_pts = world_pts.squeeze()
+                #print("world point",world_pts)
+                
+                #print(undistort_unproject_pts(image_pts, newcamera_mtx, distorsion_mtx))
+                
+                # ptsOut = np.array(corners, dtype='float32')
+                # ptsTemp = np.array([], dtype='float32')
+                # rtemp = ttemp = np.array([0,0,0], dtype='float32')
+                # image_pts = cv2.undistortPoints(image_pts, newcamera_mtx, None)
+                # ptsTemp = cv2.convertPointsToHomogeneous(image_pts)
+                # output = cv2.projectPoints( ptsTemp, rtemp, ttemp, newcamera_mtx, distorsion_mtx, ptsOut )
+                
                 
                 p_dic = {}
                 p_dic["wafer_x"] = 0.0
