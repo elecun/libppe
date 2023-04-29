@@ -1,0 +1,6 @@
+{
+	"path" : "/home/sd/Project/libppe/bin/testset",
+	"files" : ["1.png", "2.png"],
+	"laser_wafer_distance" : [99.8, 99.8]
+}
+

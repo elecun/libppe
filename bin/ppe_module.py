@@ -43,7 +43,7 @@ class UndefinedParamError(Exception):
 '''
 def estimate(json_camera_param, json_job_desc):
     result_dic = {} # estimated results (dictionary type for converting json)
-    
+    print(json_job_desc)
     '''
     load job & parameters
     '''
@@ -155,6 +155,10 @@ def estimate(json_camera_param, json_job_desc):
         for src_image in image_files_path:
             if not os.path.isfile(src_image):
                 raise FileNotFoundError("%s file does not exist"%src_image)
+            
+        # size of files and laser distance sould be same
+        if _laser_distance.size != _image_files.size:
+            raise ValueError("Laser Distance data and Image file size should be same.")
             
         
         # processing
