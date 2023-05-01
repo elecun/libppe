@@ -9,6 +9,9 @@ import os.path
 #import torchvision
 import math
 import argparse
+
+def compute_image_quality(images, roi):
+    for image in images:
         
 
 '''
@@ -70,227 +73,11 @@ class UndefinedParamError(Exception):
         return self.msg
     
 '''
-Compute image quality using Sobel
-'''
-def compute_image_quality(json_camera_param, json_job_desc):
-    result_dic = {} # estimated results (dictionary type for converting json)
-    '''
-    load job & parameters
-    '''
-    # load job & parameters from string arguments
-    try:
-        process_job = json.loads(json_job_desc)
-        process_param = json.loads(json_camera_param)
-    except json.decoder.JSONDecodeError:
-        print("Job & Parameters decoding error is occured")
-        
-    '''
-     getting developer options
-    '''
-    if "verbose" in process_job:
-        _verbose = int(process_job["verbose"])
-    else:
-        _verbose = 0
-    if "use_camera" in process_job:
-        _use_camera = int(process_job["use_camera"])
-    else:
-        _use_camera = 0
-    if "save_result" in process_job:
-        _save_result = int(process_job["save_result"])
-    else:
-        _save_result = 0
-        
-    '''
-     getting system & library check
-    '''
-    # get python version for different API functions prototype
-    _python_version = list(map(int, cv2.__version__.split(".")))
-    if _verbose:
-        print("Installed Python version :", cv2.__version__)
-    
-    '''
-    main code below
-    ''' 
-    try:
-        
-        # read image resolution
-        if "resolution" in process_param:
-            _w, _h = process_param["resolution"]
-        else:
-            raise UndefinedParamError("Image resultion configurations are not defined")
-        
-        # read options
-        if "target_marker" in process_job:
-            _target_marker = process_job["target_marker"]
-        else:
-            raise UndefinedParamError("Target Marker is not defined")
-        
-        # read roi bound option
-        if "roi_bound" in process_job:
-            _roi_bound = process_job["roi_bound"]
-        else:
-            raise UndefinedParamError("ROI Bound is not defined")
-        
-        # read camera parameters
-        if "fx" not in process_param or "fy" not in process_param or "cx" not in process_param or "cy" not in process_param or "coeff_k1" not in process_param or "coeff_k2" not in process_param or "coeff_p1" not in process_param or "coeff_p2" not in process_param:
-            raise UndefinedParamError("Some camera parameter(s) is missing")
-        else:
-            _fx = float(process_param["fx"])
-            _fy = float(process_param["fy"])
-            _cx = float(process_param["cx"])
-            _cy = float(process_param["cy"])
-            _k1 = float(process_param["coeff_k1"])
-            _k2 = float(process_param["coeff_k2"])
-            _p1 = float(process_param["coeff_p1"])
-            _p2 = float(process_param["coeff_p2"])
-            
-        if "wafer" not in process_param:
-            raise UndefinedParamError("wafer is not defined")
-        else:
-            if "diameter" not in process_param["wafer"]:
-                raise UndefinedParamError("wafer diameter is not defined")
-        _wafer_diameter = float(process_param["wafer"]["diameter"])
-        
-        # read reference wafer position as dictionary
-        if "marker" not in process_param:
-            raise UndefinedParamError("marker is not defined")
-        else:
-            if "coord" not in process_param["marker"]:
-                raise UndefinedParamError("Marker coordinates are not defined")
-        _wafer_marker_pos = json.loads(json.dumps(process_param["marker"]["coord"]))
-        _wafer_marker_pos = {int(k):[int(i)+_wafer_diameter/2 for i in v] for k,v in _wafer_marker_pos.items()}
-        
-        # set camera parameter
-        intrinsic_mtx = np.matrix([[_fx, 0.000000, _cx], [0.000000, _fy, _cy], [0.000000, 0.000000, 1.000000]])
-        distorsion_mtx = np.matrix([_k1, _k2, _p1, _p2, 0.])
-        newcamera_mtx, roi = cv2.getOptimalNewCameraMatrix(intrinsic_mtx, distorsion_mtx,(_w, _h), 1)
-        newcamera_mtx = np.matrix(newcamera_mtx, dtype=float)
-        
-        # preparation for marker detection
-        if _python_version[0]==4: # < 4.7.x
-            if _python_version[1]<7:
-                markerdict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
-                markerparams = cv2.aruco.DetectorParameters_create()
-                markerparams.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
-            else: # >= 4.7.x
-                markerdict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
-                markerparams = cv2.aruco.DetectorParameters()
-                markerparams.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
-                markerdetector = cv2.aruco.ArucoDetector(markerdict, markerparams)
-        else:
-            raise ValueError("Your python version is not supported")
-        
-        # image files and path prefix check
-        if "files" not in process_job or "path" not in process_job:
-            raise UndefinedParamError("files and path are not defined")
-        _video_files = np.array(process_job["files"])
-        _path_prefix = process_job["path"]
-        video_files_path = np.array([_path_prefix+f for f in _video_files])
-        
-        # file existance check
-        for src_video in video_files_path:
-            if not os.path.isfile(src_video):
-                raise FileNotFoundError("%s file does not exist"%src_video)
-            
-        
-        # processing
-        for filename in _video_files:
-            src_video = _path_prefix+filename # video full path
-
-            if _verbose:
-                print("%s is now processing..."%src_video)
-                
-            _video = cv2.VideoCapture(src_video)
-            _width  = int(_video.get(cv2.CAP_PROP_FRAME_WIDTH))
-            _height = int(_video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            _fps = _video.get(cv2.CAP_PROP_FPS)
-            _frames = int(_video.get(cv2.CAP_PROP_FRAME_COUNT))
-            if _verbose:
-                print("> Video source info. : ({},{}@{}), {} frames".format(_width, _height, _fps, _frames))
-                
-            # create directory to store temporary results
-            temp_result_dir = _path_prefix+filename[:-4]+"/"
-            try:
-                if not os.path.exists(temp_result_dir):
-                    os.makedirs(temp_result_dir)
-            except OSError:
-                print ('Error: Creating directory. ' +  temp_result_dir)
-            
-            if _video.isOpened():
-                measured_q = []
-                measured_p = []
-                frame_count = 0
-                while True:
-                    ret, frame = _video.read()
-                    if ret == True:
-                        raw_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                        undist_raw_gray = cv2.undistort(raw_gray, intrinsic_mtx, distorsion_mtx, None, newcamera_mtx) # undistortion by camera parameters
-                        undist_raw_gray = cv2.bitwise_not(undist_raw_gray) # color inversion
-                        
-                        # find markers printed on reference wafer
-                        if _python_version[0]==4 and _python_version[1]<7:
-                            corners, ids, rejected = cv2.aruco.detectMarkers(undist_raw_gray, markerdict, parameters=markerparams)
-                        else:
-                            corners, ids, rejected = markerdetector.detectMarkers(undist_raw_gray)
-                        
-                        if type(ids) == np.ndarray and ids.size>1:
-                            for idx, marker_id in enumerate(ids.squeeze()):
-                                corner = corners[idx].squeeze()
-                                if marker_id == _target_marker:       
-                                    measured_p.append(np.mean(corner, axis=0, dtype=float)[0])
-                                    # extract ROI
-                                    mean = np.mean(corner, axis=0, dtype=float)
-                                    width = corner[1][0]-corner[0][0]
-                                    height = corner[2][1]-corner[1][1]
-                                    s1 = np.round(corner[0][1]-_roi_bound).astype(int)
-                                    s2 = np.round(corner[0][0]-_roi_bound).astype(int)
-                                    e1 = np.round(corner[2][1]+_roi_bound).astype(int)
-                                    e2 = np.round(corner[2][0]+_roi_bound).astype(int)
-                                    roi = undist_raw_gray[s1:e1, s2:e2].copy()
-                                    
-                                    sobel_x = cv2.Sobel(roi, cv2.CV_64F, 1, 0, ksize=3)
-                                    sobel_y = cv2.Sobel(roi, cv2.CV_64F, 0, 1, ksize=3)
-                                    scaled_sobel_x = cv2.convertScaleAbs(sobel_x)
-                                    scaled_sobel_y = cv2.convertScaleAbs(sobel_y)
-                                    
-                                    out = cv2.addWeighted(scaled_sobel_x, 1, scaled_sobel_y, 1, 0)
-                                    _mean, _std = cv2.meanStdDev(out)
-                                    mean = _mean.squeeze()
-                                    std = _std.squeeze()
-                                    measured_q.append(std*std)
-        
-                                    if _save_result:
-                                        cv2.imwrite(temp_result_dir+"roi_"+str(frame_count)+"_"+filename+".png", roi)     
-                            frame_count += 1                
-                    else:
-                        # capture done
-                        break
-            
-                # after while
-                measured_q_mean, measured_q_std = cv2.meanStdDev(np.array(measured_q, dtype=float))
-                measured_p_mean, measured_p_std = cv2.meanStdDev(np.array(measured_p, dtype=float))
-                if _verbose:
-                    print("Quality mean : ", measured_q_mean)
-                    print("Quality Std. Dev. : ", measured_q_std)
-                    print("Position mean : ", measured_p_mean)
-                    print("Position Std. Dev. : ", measured_p_std)
-                
-            
-    except json.decoder.JSONDecodeError :
-        print("Error : Decoding Job Description has failed")
-    except (ValueError, UndefinedParamError) as e:
-        print("Error : ",e)
-
-    json_result = json.dumps(result_dic)
-    return json_result
-
-    
-'''
  estimation processing with already saved image frame (from job description)
 '''
 def estimate(json_camera_param, json_job_desc):
     result_dic = {} # estimated results (dictionary type for converting json)
-
+    print(json_job_desc)
     '''
     load job & parameters
     '''
@@ -553,9 +340,7 @@ def estimate(json_camera_param, json_job_desc):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', nargs='?', required=True, help="Configuration file")
     parser.add_argument('--job', nargs='?', required=True, help="Job file")
-    parser.add_argument('--quality', required=False, help="Compute Image Quality", action='store_true')
     args = parser.parse_args()
     
     with open(args.config, 'r') as file:
@@ -563,8 +348,5 @@ if __name__ == "__main__":
     with open(args.job, 'r') as file:
         job = json.load(file)
     
-    if args.quality is False:
-        # call estimate function
-        estimate(json.dumps(config), json.dumps(job))
-    else:
-        compute_image_quality(json.dumps(config), json.dumps(job))
+    # call estimate function
+    estimate(json.dumps(config), json.dumps(job))
