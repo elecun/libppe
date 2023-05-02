@@ -276,13 +276,13 @@ def compute_image_quality(json_camera_param, json_job_desc):
                 measured_w_mean, measured_w_std = cv2.meanStdDev(np.array(measured_w, dtype=float))
                 measured_h_mean, measured_h_std = cv2.meanStdDev(np.array(measured_h, dtype=float))
                 if _verbose:
-                    print("Quality mean : ", measured_q_mean)
-                    print("Quality Std. Dev. : ", measured_q_std)
-                    print("Position mean : ", measured_p_mean)
+                    print("Quality Mean : ", measured_q_mean)
+                    print("Quality Std. Dev : ", measured_q_std)
+                    print("Position Mean : ", measured_p_mean)
                     print("Position Std. Dev. : ", measured_p_std)
-                    print("ROI Width mean : ", measured_w_mean)
+                    print("ROI Width Mean : ", measured_w_mean)
                     print("ROI Width Std. Dev. : ", measured_w_std)
-                    print("ROI Height mean : ", measured_h_mean)
+                    print("ROI Height Mean : ", measured_h_mean)
                     print("ROI Height Std. Dev. : ", measured_h_std)
                 
             
