@@ -219,6 +219,8 @@ def compute_image_quality(json_camera_param, json_job_desc):
             if _video.isOpened():
                 measured_q = []
                 measured_p = []
+                measured_w = []
+                measured_h = []
                 frame_count = 0
                 while True:
                     ret, frame = _video.read()
@@ -246,6 +248,8 @@ def compute_image_quality(json_camera_param, json_job_desc):
                                     s2 = np.round(corner[0][0]-_roi_bound).astype(int)
                                     e1 = np.round(corner[2][1]+_roi_bound).astype(int)
                                     e2 = np.round(corner[2][0]+_roi_bound).astype(int)
+                                    measured_w.append(corner[2][0]-corner[0][0])
+                                    measured_h.append(corner[2][1]-corner[0][1])
                                     roi = undist_raw_gray[s1:e1, s2:e2].copy()
                                     
                                     sobel_x = cv2.Sobel(roi, cv2.CV_64F, 1, 0, ksize=3)
@@ -269,11 +273,17 @@ def compute_image_quality(json_camera_param, json_job_desc):
                 # after while
                 measured_q_mean, measured_q_std = cv2.meanStdDev(np.array(measured_q, dtype=float))
                 measured_p_mean, measured_p_std = cv2.meanStdDev(np.array(measured_p, dtype=float))
+                measured_w_mean, measured_w_std = cv2.meanStdDev(np.array(measured_w, dtype=float))
+                measured_h_mean, measured_h_std = cv2.meanStdDev(np.array(measured_h, dtype=float))
                 if _verbose:
                     print("Quality mean : ", measured_q_mean)
                     print("Quality Std. Dev. : ", measured_q_std)
                     print("Position mean : ", measured_p_mean)
                     print("Position Std. Dev. : ", measured_p_std)
+                    print("ROI Width mean : ", measured_w_mean)
+                    print("ROI Width Std. Dev. : ", measured_w_std)
+                    print("ROI Height mean : ", measured_h_mean)
+                    print("ROI Height Std. Dev. : ", measured_h_std)
                 
             
     except json.decoder.JSONDecodeError :
