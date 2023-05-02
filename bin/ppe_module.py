@@ -242,14 +242,10 @@ def compute_image_quality(json_camera_param, json_job_desc):
                                     mean = np.mean(corner, axis=0, dtype=float)
                                     width = corner[1][0]-corner[0][0]
                                     height = corner[2][1]-corner[1][1]
-                                    # s1 = np.round(corner[0][1]-_roi_bound).astype(int)
-                                    # s2 = np.round(corner[0][0]-_roi_bound).astype(int)
-                                    # e1 = np.round(corner[2][1]+_roi_bound).astype(int)
-                                    # e2 = np.round(corner[2][0]+_roi_bound).astype(int)
-                                    s1 = np.round(corner[0][1]).astype(int)
-                                    s2 = np.round(corner[0][0]).astype(int)
-                                    e1 = np.round(corner[2][1]).astype(int)
-                                    e2 = np.round(corner[2][0]).astype(int)
+                                    s1 = np.round(corner[0][1]-_roi_bound).astype(int)
+                                    s2 = np.round(corner[0][0]-_roi_bound).astype(int)
+                                    e1 = np.round(corner[2][1]+_roi_bound).astype(int)
+                                    e2 = np.round(corner[2][0]+_roi_bound).astype(int)
                                     roi = undist_raw_gray[s1:e1, s2:e2].copy()
                                     
                                     sobel_x = cv2.Sobel(roi, cv2.CV_64F, 1, 0, ksize=3)
