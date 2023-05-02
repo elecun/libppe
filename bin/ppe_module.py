@@ -578,7 +578,7 @@ def estimate(json_camera_param, json_job_desc):
                     rot_out_file = csv.writer(f)
                     rot_out_file.writerow(["index", "Estimated", "Ground Truth"])
                     for idx, deg in enumerate(_yaw_gt):
-                        rot_out_file.writerow([estimated_yaw_deg[idx], _yaw_gt[idx]])
+                        rot_out_file.writerow([idx, estimated_yaw_deg[idx], _yaw_gt[idx]])
         
                 
         # dumps into json result        
