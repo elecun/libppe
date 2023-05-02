@@ -9,6 +9,7 @@ import os.path
 #import torchvision
 import math
 import argparse
+import csv
         
 
 '''
@@ -326,6 +327,15 @@ def estimate(json_camera_param, json_job_desc):
         _save_result = int(process_job["save_result"])
     else:
         _save_result = 0
+    if "yaw_gt_initial" in process_job:
+        _yaw_gt_initial = process_job["yaw_gt_initial"]
+    else:
+        _yaw_gt_initial = 0.0
+    if "yaw_gt" in process_job:
+        _yaw_gt = np.array(process_job["yaw_gt"], dtype=float)
+        _yaw_gt += _yaw_gt_initial
+    else:
+        _yaw_gt = np.array([], dtype=float)
         
     '''
      getting system & library check
@@ -346,6 +356,7 @@ def estimate(json_camera_param, json_job_desc):
             _w, _h = process_param["resolution"]
         else:
             raise UndefinedParamError("Image resultion configurations are not defined")
+
         
         # read camera parameters
         if "fx" not in process_param or "fy" not in process_param or "cx" not in process_param or "cy" not in process_param or "coeff_k1" not in process_param or "coeff_k2" not in process_param or "coeff_p1" not in process_param or "coeff_p2" not in process_param:
@@ -419,6 +430,7 @@ def estimate(json_camera_param, json_job_desc):
             
         
         # processing
+        estimated_yaw_deg = []
         for filename in _image_files:
             src_image = _path_prefix+filename # image full path
 
@@ -480,6 +492,12 @@ def estimate(json_camera_param, json_job_desc):
                 _, prVec, ptVec = cv2.solvePnP(marker_centroids_on_wafer, marker_centroids_on_image, cameraMatrix=intrinsic_mtx, distCoeffs=None, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
                 R, jacobian = cv2.Rodrigues(rVec) # rotation vector to matrix
                 
+                # save yaw angles
+                estimated_yaw_deg.append(np.rad2deg(math.atan2(-R[1][0], R[0][0])))
+
+                if _verbose:
+                    print("Rotation Angle", -1*np.rad2deg(math.atan2(-R[1][0], R[0][0])))
+                
                 # testing for 3D to 2D
                 #np.array([[130.0, 210.0, 0.0]], dtype=float)
                 image_pts = obj_coord2pixel_coord([130.0, 210.0, 0.0], rVec, tVec, newcamera_mtx, distorsion_mtx, verbose=_verbose)
@@ -497,21 +515,21 @@ def estimate(json_camera_param, json_job_desc):
 
                 
                 #point_2D = (437.06, 511.31)
-                point_2D = (418.06, 513.01)
+                # point_2D = (418.06, 513.01)
 
-                # Convert the point to homogeneous coordinates
-                point_2D_homogeneous = np.array([419.0, 514.0, 0]).reshape(3, 1)
+                # # Convert the point to homogeneous coordinates
+                # point_2D_homogeneous = np.array([419.0, 514.0, 0]).reshape(3, 1)
 
-                # Define the intrinsic camera matrix and extrinsic parameters (rotation and translation)
-                R = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])  # Rotation matrix
-                #T = np.array([0, 0, 0])  # Translation vector
+                # # Define the intrinsic camera matrix and extrinsic parameters (rotation and translation)
+                # R = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])  # Rotation matrix
+                # #T = np.array([0, 0, 0])  # Translation vector
 
-                # Compute the 3D point in camera coordinates
-                point_3D_camera_homogeneous = np.dot(np.linalg.inv(newcamera_mtx), point_2D_homogeneous)
-                point_3D_camera_homogeneous = np.vstack((point_3D_camera_homogeneous, [1]))  # Add homogeneous coordinate
-                point_3D_camera = np.dot(np.hstack((R, tVec.reshape(3, 1))), point_3D_camera_homogeneous)
-                point_3D_camera = point_3D_camera[:3, 0]  # Convert homogeneous coordinate to 3D point
-                print("point_3D_camera", point_3D_camera)
+                # # Compute the 3D point in camera coordinates
+                # point_3D_camera_homogeneous = np.dot(np.linalg.inv(newcamera_mtx), point_2D_homogeneous)
+                # point_3D_camera_homogeneous = np.vstack((point_3D_camera_homogeneous, [1]))  # Add homogeneous coordinate
+                # point_3D_camera = np.dot(np.hstack((R, tVec.reshape(3, 1))), point_3D_camera_homogeneous)
+                # point_3D_camera = point_3D_camera[:3, 0]  # Convert homogeneous coordinate to 3D point
+                # print("point_3D_camera", point_3D_camera)
 
                 
                 # testing for coordinate conversion (2D to 3D)
@@ -527,7 +545,8 @@ def estimate(json_camera_param, json_job_desc):
                 # rtemp = ttemp = np.array([0,0,0], dtype='float32')
                 # image_pts = cv2.undistortPoints(image_pts, newcamera_mtx, None)
                 # ptsTemp = cv2.convertPointsToHomogeneous(image_pts)
-                # output = cv2.projectPoints( ptsTemp, rtemp, ttemp, newcamera_mtx, distorsion_mtx, ptsOut )
+                # output = cv2.projectPoints( ptsTemp, rtemp, ttemp, newcamera_mtx, distorsion_mtx, ptsOut )\
+                
                 
                 
                 p_dic = {}
@@ -548,6 +567,19 @@ def estimate(json_camera_param, json_job_desc):
                 result_dic[filename] = p_dic
             else:
                 print("Not enough markers are detected")
+        
+        # for report (yaw angle)
+        if _yaw_gt.size>0:
+            estimated_yaw_deg = np.abs(np.array(estimated_yaw_deg))
+            yaw_rmse = np.sqrt(np.mean((estimated_yaw_deg-_yaw_gt)**2))
+            print("* RMSE Rotation(Yaw deg)", yaw_rmse)
+            if _save_result:
+                with open('yaw_rotation.csv', 'w') as f:
+                    rot_out_file = csv.writer(f)
+                    rot_out_file.writerow(["index", "Estimated", "Ground Truth"])
+                    for idx, deg in enumerate(_yaw_gt):
+                        rot_out_file.writerow([estimated_yaw_deg[idx], _yaw_gt[idx]])
+        
                 
         # dumps into json result        
         json_result = json.dumps(result_dic)
