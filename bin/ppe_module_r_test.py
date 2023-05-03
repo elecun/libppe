@@ -269,8 +269,8 @@ def estimate(json_camera_param, json_job_desc):
                 estimated_yaw_deg.append(yaw_deg)
                 real_yaw_deg.append(gt_deg)
 
-                print("* Estimated rotation Angle(deg)", yaw_deg) if _verbose else None
-                print("* Ground Truth rotation Angle(deg)", gt_deg) if _verbose else None
+                #print("* Estimated rotation Angle(deg)", yaw_deg) if _verbose else None
+                #print("* Ground Truth rotation Angle(deg)", gt_deg) if _verbose else None
                 
                 p_dic = {}
                 p_dic["wafer_x"] = 0.0

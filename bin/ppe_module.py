@@ -440,43 +440,47 @@ def estimate(json_camera_param, json_job_desc):
             undist_raw_gray = cv2.bitwise_not(undist_raw_gray) # color inversion
             undist_raw_color = cv2.cvtColor(undist_raw_gray, cv2.COLOR_GRAY2BGR)
             
+            
             # find markers printed on reference wafer
             if _python_version[0]==4 and _python_version[1]<7:
                 corners, ids, rejected = cv2.aruco.detectMarkers(undist_raw_gray, markerdict, parameters=markerparams)
             else:
                 corners, ids, rejected = markerdetector.detectMarkers(undist_raw_gray)
-            
-            # detected marker preprocessing
-            marker_centroids_on_image = []
-            marker_centroids_on_wafer = []
-            
-            for idx, marker_id in enumerate(ids.squeeze()):
-                corner = corners[idx].squeeze()                
-                marker_centroids_on_image.append(np.mean(corner, axis=0, dtype=float))
-                marker_centroids_on_wafer.append(_wafer_marker_pos[marker_id])
-            marker_centroids_on_image = np.array(marker_centroids_on_image)
-            marker_centroids_on_wafer = np.array(marker_centroids_on_wafer)
-            marker_centroids_on_wafer = np.append(marker_centroids_on_wafer, np.zeros(shape=(np.size(marker_centroids_on_wafer, axis=0), 1), dtype=np.double),axis=1) # column add
-            
-            if marker_centroids_on_image.shape[0] != marker_centroids_on_wafer.shape[0]:
-                raise ValueError("Marker pointset dimension is not same")
-            
-            # save detected image (draw point on marker center point)
-            if _save_result:
-                for idx, pts in enumerate(marker_centroids_on_image):
-                    p = tuple(pts.round().astype(int))
-                    
-                    str_image_pos = "on image : [%d] x=%2.2f,y=%2.2f"%(ids[idx], pts[0], pts[1])
-                    str_world_pos = "on wafer : x=%2.2f,y=%2.2f"%(marker_centroids_on_wafer[idx][0], marker_centroids_on_wafer[idx][1])
-                    if _verbose:
-                        print("marker :",str_image_pos, str_world_pos)
-                    cv2.putText(undist_raw_color, str_image_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                    cv2.putText(undist_raw_color, str_world_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                    cv2.line(undist_raw_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
-                    cv2.line(undist_raw_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
-                cv2.imwrite(_path_prefix+"markers_"+filename, undist_raw_color)
                 
-            if ids.size>3:
+            # found markers
+            if ids is not None and ids.size>3:
+                
+                # detected marker preprocessing
+                marker_centroids_on_image = []
+                marker_centroids_on_wafer = []
+                
+                for idx, marker_id in enumerate(ids.squeeze()):
+                    corner = corners[idx].squeeze()                
+                    marker_centroids_on_image.append(np.mean(corner, axis=0, dtype=float))
+                    marker_centroids_on_wafer.append(_wafer_marker_pos[marker_id])
+                marker_centroids_on_image = np.array(marker_centroids_on_image)
+                marker_centroids_on_wafer = np.array(marker_centroids_on_wafer)
+                marker_centroids_on_wafer = np.append(marker_centroids_on_wafer, np.zeros(shape=(np.size(marker_centroids_on_wafer, axis=0), 1), dtype=np.double),axis=1) # column add
+                
+                if marker_centroids_on_image.shape[0] != marker_centroids_on_wafer.shape[0]:
+                    raise ValueError("Marker pointset dimension is not same")
+                
+                # save detected image (draw point on marker center point)
+                if _save_result:
+                    for idx, pts in enumerate(marker_centroids_on_image):
+                        p = tuple(pts.round().astype(int))
+                        
+                        str_image_pos = "on image : [%d] x=%2.2f,y=%2.2f"%(ids[idx], pts[0], pts[1])
+                        str_world_pos = "on wafer : x=%2.2f,y=%2.2f"%(marker_centroids_on_wafer[idx][0], marker_centroids_on_wafer[idx][1])
+                        if _verbose:
+                            print("marker :",str_image_pos, str_world_pos)
+                        cv2.putText(undist_raw_color, str_image_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                        cv2.putText(undist_raw_color, str_world_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                        cv2.line(undist_raw_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
+                        cv2.line(undist_raw_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
+                    cv2.imwrite(_path_prefix+"markers_"+filename, undist_raw_color)
+                
+            
                 # compute 2D-3D corredpondence with Perspective N Point'
                 # note] use undistorted image points to solve, then appply the distortion coefficient and camera matrix as pin hole camera model
                 _, rVec, tVec = cv2.solvePnP(marker_centroids_on_wafer, marker_centroids_on_image, cameraMatrix=newcamera_mtx, distCoeffs=distorsion_mtx, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
