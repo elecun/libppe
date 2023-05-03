@@ -309,8 +309,8 @@ def estimate(json_camera_param, json_job_desc):
             else:
                 print("Not enough markers are detected")
         
-        print("* Estimated Position(X,Y) :", estimated_x_pos, estimated_y_pos) if _verbose else None
-        print("* Real Position(X,Y) :", real_x_pos, real_y_pos) if _verbose else None
+        #print("* Estimated Position(X,Y) :", estimated_x_pos, estimated_y_pos) if _verbose else None
+        #print("* Real Position(X,Y) :", real_x_pos, real_y_pos) if _verbose else None
         
         #for report (yaw angle)
         if estimated_y_pos is not None and estimated_x_pos is not None and len(estimated_y_pos)>0 and len(estimated_x_pos)>0:
@@ -342,7 +342,7 @@ def estimate(json_camera_param, json_job_desc):
         print("Error : ",e)
 
     json_result = json.dumps(result_dic)
-    print(result_dic) if _verbose else None
+    #print(result_dic) if _verbose else None
     
     return json_result
 
