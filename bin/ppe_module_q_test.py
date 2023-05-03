@@ -98,9 +98,9 @@ def estimate(json_camera_param, json_job_desc):
     '''
     set program parameters
     '''
-    _yaw_gt_initial = 0.0 if "yaw_gt_initial" not in process_job else process_job["yaw_gt_initial"]
-    _yaw_gt = np.array([], dtype=float) if "yaw_gt" not in process_job else np.array(process_job["yaw_gt"], dtype=float)+_yaw_gt_initial
-    _yaw_direction = 1.0 if "yaw_direction" not in process_job else process_job["yaw_direction"]
+    _target_marker = 1 if "target_marker" not in process_job else process_job["target_marker"]
+    _roi_bound = 0 if "roi_bound" not in process_job else process_job["roi_bound"]
+    
     '''
      set system & library
     '''
@@ -198,117 +198,98 @@ def estimate(json_camera_param, json_job_desc):
         
         
         for fid, filename in enumerate(_source_files):
-            src_file = _path_prefix+filename # image full path
+            src_file = _path_prefix+filename # video full path
             
             print("%s is now processing..."%src_file) if _verbose else None
             
-            raw_image = cv2.imread(src_file, cv2.IMREAD_UNCHANGED)
+            _video = cv2.VideoCapture(src_file)
+            _width  = int(_video.get(cv2.CAP_PROP_FRAME_WIDTH))
+            _height = int(_video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            _fps = _video.get(cv2.CAP_PROP_FPS)
+            _frames = int(_video.get(cv2.CAP_PROP_FRAME_COUNT))
+            print("> Video source info. : ({},{}@{}), {} frames".format(_width, _height, _fps, _frames)) if _verbose else None
             
-            if raw_image is not None:
-                if raw_image.shape[2]==3: # if color image
-                    raw_color = raw_image.copy()
-                    raw_gray = cv2.cvtColor(raw_image, cv2.COLOR_BGR2GRAY)
-                else:
-                    raw_gray = raw_image.copy()
-                    raw_color = cv2.cvtColor(raw_image, cv2.COLOR_GRAY2BGR)
-            else:
-                raise ValueError("Image is empty")
+            # create directory to store temporary results
+            temp_result_dir = _path_prefix+filename[:-4]+"/"
+            try:
+                if not os.path.exists(temp_result_dir):
+                    os.makedirs(temp_result_dir)
+            except OSError:
+                print ('Error: Creating directory. ' +  temp_result_dir)
                 
-            undist_raw_gray = cv2.undistort(raw_gray, intrinsic_mtx, distorsion_mtx, None, newcamera_mtx) # undistortion by camera parameters
-            undist_raw_gray = cv2.bitwise_not(undist_raw_gray) # color inversion
-            undist_raw_color = cv2.cvtColor(undist_raw_gray, cv2.COLOR_GRAY2BGR)
-            
-            # find markers printed on reference wafer
-            if _python_version[0]==4 and _python_version[1]<7: # < opencv 4.7
-                corners, ids, rejected = cv2.aruco.detectMarkers(undist_raw_gray, markerdict, parameters=markerparams)
-            else:
-                corners, ids, rejected = markerdetector.detectMarkers(undist_raw_gray)
-            
-            # found markers
-            if ids is not None and ids.size>3:
                 
-                # detected marker preprocessing
-                marker_centroids_on_image = []
-                marker_centroids_on_wafer = []
-                
-                for idx, marker_id in enumerate(ids.squeeze()):
-                    corner = corners[idx].squeeze()                
-                    marker_centroids_on_image.append(np.mean(corner, axis=0, dtype=float))
-                    marker_centroids_on_wafer.append(_wafer_marker_pos[marker_id])
-                marker_centroids_on_image = np.array(marker_centroids_on_image)
-                marker_centroids_on_wafer = np.array(marker_centroids_on_wafer)
-                marker_centroids_on_wafer = np.append(marker_centroids_on_wafer, np.zeros(shape=(np.size(marker_centroids_on_wafer, axis=0), 1), dtype=np.double),axis=1) # column add
-                
-                if marker_centroids_on_image.shape[0] != marker_centroids_on_wafer.shape[0]:
-                    raise ValueError("Marker pointset dimension is not same")
-                
-                # save detected image (draw point on marker center point)
-                if _save_result:
-                    for idx, pts in enumerate(marker_centroids_on_image):
-                        p = tuple(pts.round().astype(int))
+            if _video.isOpened():
+                measured_q = []
+                measured_p = []
+                measured_w = []
+                measured_h = []
+                frame_count = 0
+                while True:
+                    ret, frame = _video.read()
+                    if ret == True:
+                        raw_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                        undist_raw_gray = cv2.undistort(raw_gray, intrinsic_mtx, distorsion_mtx, None, newcamera_mtx) # undistortion by camera parameters
+                        undist_raw_gray = cv2.bitwise_not(undist_raw_gray) # color inversion
                         
-                        str_image_pos = "on image : [%d] x=%2.2f,y=%2.2f"%(ids[idx], pts[0], pts[1])
-                        str_world_pos = "on wafer : x=%2.2f,y=%2.2f"%(marker_centroids_on_wafer[idx][0], marker_centroids_on_wafer[idx][1])
-                        #print("marker :",str_image_pos, str_world_pos) if _verbose else None
+                        # find markers printed on reference wafer
+                        if _python_version[0]==4 and _python_version[1]<7:
+                            corners, ids, rejected = cv2.aruco.detectMarkers(undist_raw_gray, markerdict, parameters=markerparams)
+                        else:
+                            corners, ids, rejected = markerdetector.detectMarkers(undist_raw_gray)
                         
-                        cv2.putText(undist_raw_color, str_image_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                        cv2.putText(undist_raw_color, str_world_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                        cv2.line(undist_raw_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
-                        cv2.line(undist_raw_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
-                    cv2.imwrite(_path_prefix+"markers_"+filename, undist_raw_color)
+                        if ids is not None and ids.size>1:
+                            for idx, marker_id in enumerate(ids.squeeze()):
+                                corner = corners[idx].squeeze()
+                                if marker_id == _target_marker:       
+                                    measured_p.append(np.mean(corner, axis=0, dtype=float)[0])
+                                    # extract ROI
+                                    mean = np.mean(corner, axis=0, dtype=float)
+                                    width = corner[1][0]-corner[0][0]
+                                    height = corner[2][1]-corner[1][1]
+                                    s1 = np.round(corner[0][1]-_roi_bound).astype(int)
+                                    s2 = np.round(corner[0][0]-_roi_bound).astype(int)
+                                    e1 = np.round(corner[2][1]+_roi_bound).astype(int)
+                                    e2 = np.round(corner[2][0]+_roi_bound).astype(int)
+                                    measured_w.append(corner[2][0]-corner[0][0])
+                                    measured_h.append(corner[2][1]-corner[0][1])
+                                    roi = undist_raw_gray[s1:e1, s2:e2].copy()
+                                    
+                                    # sobel method
+                                    sobel_x = cv2.Sobel(roi, cv2.CV_64F, 1, 0, ksize=3)
+                                    sobel_y = cv2.Sobel(roi, cv2.CV_64F, 0, 1, ksize=3)
+                                    scaled_sobel_x = cv2.convertScaleAbs(sobel_x)
+                                    scaled_sobel_y = cv2.convertScaleAbs(sobel_y)
+                                    
+                                    out = cv2.addWeighted(scaled_sobel_x, 1, scaled_sobel_y, 1, 0)
+                                    _mean, _std = cv2.meanStdDev(out)
+                                    mean = _mean.squeeze()
+                                    std = _std.squeeze()
+                                    measured_q.append(std*std)
+        
+                                    cv2.imwrite(temp_result_dir+"roi_"+str(frame_count)+"_"+filename+".png", roi) if _save_result else None
+                            frame_count += 1                
+                    else:
+                        # capture done
+                        break
+            
+                # after while
+                measured_q_mean, measured_q_std = cv2.meanStdDev(np.array(measured_q, dtype=float))
+                measured_p_mean, measured_p_std = cv2.meanStdDev(np.array(measured_p, dtype=float))
+                measured_w_mean, measured_w_std = cv2.meanStdDev(np.array(measured_w, dtype=float))
+                measured_h_mean, measured_h_std = cv2.meanStdDev(np.array(measured_h, dtype=float))
+                print("* ------<Wafer Transfer Validity Test Result>------")
+                print("Quality Mean : ", measured_q_mean)
+                print("Quality Std. Dev : ", measured_q_std)
+                print("Position Mean : ", measured_p_mean)
+                print("Position Std. Dev. : ", measured_p_std)
+                print("ROI Width Mean : ", measured_w_mean)
+                print("ROI Width Std. Dev. : ", measured_w_std)
+                print("ROI Height Mean : ", measured_h_mean)
+                print("ROI Height Std. Dev. : ", measured_h_std)
+                print("* ------------------------------------------------")
                 
-                # compute 2D-3D corredpondence with Perspective N Point'
-                # note] use undistorted image points to solve, then appply the distortion coefficient and camera matrix as pin hole camera model
-                _, rVec, tVec = cv2.solvePnP(marker_centroids_on_wafer, marker_centroids_on_image, cameraMatrix=newcamera_mtx, distCoeffs=distorsion_mtx, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
-                _, prVec, ptVec = cv2.solvePnP(marker_centroids_on_wafer, marker_centroids_on_image, cameraMatrix=intrinsic_mtx, distCoeffs=None, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
-                R, jacobian = cv2.Rodrigues(rVec) # rotation vector to matrix
-                
-                # save yaw angles
-                yaw_deg = _yaw_direction*np.rad2deg(math.atan2(-R[1][0], R[0][0]))
-                gt_deg = _yaw_gt[fid]
-                estimated_yaw_deg.append(yaw_deg)
-                real_yaw_deg.append(gt_deg)
-
-                #print("* Estimated rotation Angle(deg)", yaw_deg) if _verbose else None
-                #print("* Ground Truth rotation Angle(deg)", gt_deg) if _verbose else None
-                
-                p_dic = {}
-                p_dic["wafer_x"] = 0.0
-                p_dic["wafer_x"] = 0.0
-                p_dic["wafer_y"] = 0.0
-                p_dic["wafer_z"] = 0.0
-                p_dic["wafer_r"] = 0.0
-                p_dic["wafer_p"] = 0.0
-                p_dic["wafer_w"] = yaw_deg
-                p_dic["effector_x"] = 0.0
-                p_dic["effector_y"] = 0.0
-                p_dic["effector_z"] = 0.0
-                p_dic["effector_r"] = 0.0
-                p_dic["effector_p"] = 0.0
-                p_dic["effector_w"] = 0.0
-                p_dic["distance"] = 0.0
-                result_dic[filename] = p_dic
             else:
-                print("Not enough markers are detected")
-        
-        # for report (yaw angle)
-        if estimated_yaw_deg is not None and len(estimated_yaw_deg)>0:
-            estimated_yaw_deg = np.abs(np.array(estimated_yaw_deg))
-            yaw_rmse = np.sqrt(np.mean((estimated_yaw_deg-real_yaw_deg)**2))
-            yaw_mae = np.mean(np.abs(estimated_yaw_deg - real_yaw_deg))
-            print("* ------<Rotation Error Test Result>------")
-            print("* RMSE Rotation(Yaw deg) : ", yaw_rmse) # root mean square error
-            print("* MAE Rotation(Yaw deg) : ", yaw_mae) # mean average error
-            print("* ----------------------------------------")
-            if _save_result:
-                csv_filename = "yaw_rotation.csv"
-                with open(csv_filename, 'w') as f:
-                    rot_out_file = csv.writer(f)
-                    rot_out_file.writerow(["index", "Estimated", "Ground Truth"])
-                    for idx, deg in enumerate(real_yaw_deg):
-                        rot_out_file.writerow([idx, estimated_yaw_deg[idx], real_yaw_deg[idx]])
-                print("saved results in %s file"%(csv_filename))
-        
+                print("%s video file cannot be opened"%filename)
         
     except json.decoder.JSONDecodeError :
         print("Error : Decoding Job Description has failed")
