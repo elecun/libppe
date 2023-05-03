@@ -75,6 +75,7 @@ Compute image quality using Sobel
 '''
 def compute_image_quality(json_camera_param, json_job_desc):
     result_dic = {} # estimated results (dictionary type for converting json)
+    
     '''
     load job & parameters
     '''
@@ -86,28 +87,18 @@ def compute_image_quality(json_camera_param, json_job_desc):
         print("Job & Parameters decoding error is occured")
         
     '''
-     getting developer options
+     set developer options
     '''
-    if "verbose" in process_job:
-        _verbose = int(process_job["verbose"])
-    else:
-        _verbose = 0
-    if "use_camera" in process_job:
-        _use_camera = int(process_job["use_camera"])
-    else:
-        _use_camera = 0
-    if "save_result" in process_job:
-        _save_result = int(process_job["save_result"])
-    else:
-        _save_result = 0
+    _verbose = 0 if "verbose" not in process_job else int(process_job["verbose"])
+    _use_camera = 0 if "use_camera" not in process_job else int(process_job["use_camera"])
+    _save_result = 0 if "save_result" not in process_job else int(process_job["save_result"])
         
     '''
-     getting system & library check
+     set system & library
     '''
     # get python version for different API functions prototype
     _python_version = list(map(int, cv2.__version__.split(".")))
-    if _verbose:
-        print("Installed Python version :", cv2.__version__)
+    print("* Installed Python version :", cv2.__version__) if _verbose else None
     
     '''
     main code below
