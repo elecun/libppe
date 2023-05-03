@@ -332,7 +332,7 @@ def estimate(json_camera_param, json_job_desc):
                     out_file = csv.writer(f)
                     out_file.writerow(["index", "Estimated", "Ground Truth"])
                     for idx, deg in enumerate(estimated_y_pos):
-                        out_file.writerow([idx, estimated_y_pos[idx], 1])
+                        out_file.writerow([idx, estimated_y_pos[idx], real_y_pos[idx]])
                 print("saved results in %s file"%(csv_filename))
         
         
