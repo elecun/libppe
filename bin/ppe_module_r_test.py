@@ -242,20 +242,7 @@ def estimate(json_camera_param, json_job_desc):
                 if marker_centroids_on_image.shape[0] != marker_centroids_on_wafer.shape[0]:
                     raise ValueError("Marker pointset dimension is not same")
                 
-                # save detected image (draw point on marker center point)
-                if _save_result:
-                    for idx, pts in enumerate(marker_centroids_on_image):
-                        p = tuple(pts.round().astype(int))
-                        
-                        str_image_pos = "on image : [%d] x=%2.2f,y=%2.2f"%(ids[idx], pts[0], pts[1])
-                        str_world_pos = "on wafer : x=%2.2f,y=%2.2f"%(marker_centroids_on_wafer[idx][0], marker_centroids_on_wafer[idx][1])
-                        #print("marker :",str_image_pos, str_world_pos) if _verbose else None
-                        
-                        cv2.putText(undist_raw_color, str_image_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                        cv2.putText(undist_raw_color, str_world_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                        cv2.line(undist_raw_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
-                        cv2.line(undist_raw_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
-                    cv2.imwrite(_path_prefix+"markers_"+filename, undist_raw_color)
+            
                 
                 # compute 2D-3D corredpondence with Perspective N Point'
                 # note] use undistorted image points to solve, then appply the distortion coefficient and camera matrix as pin hole camera model
@@ -268,6 +255,26 @@ def estimate(json_camera_param, json_job_desc):
                 gt_deg = _yaw_gt[fid]
                 estimated_yaw_deg.append(yaw_deg)
                 real_yaw_deg.append(gt_deg)
+               
+                
+                # save detected image (draw point on marker center point)
+                if _save_result:
+                    for idx, pts in enumerate(marker_centroids_on_image):
+                        p = tuple(pts.round().astype(int))
+                        
+                        str_image_pos = "on image : [%d] x=%2.2f,y=%2.2f"%(ids[idx], pts[0], pts[1])
+                        str_world_pos = "on wafer : x=%2.2f,y=%2.2f"%(marker_centroids_on_wafer[idx][0], marker_centroids_on_wafer[idx][1])
+                        #print("marker :",str_image_pos, str_world_pos) if _verbose else None
+                        
+                        cv2.putText(undist_raw_color, str_image_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                        cv2.putText(undist_raw_color, str_world_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                        cv2.putText(undist_raw_color, str_world_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                        cv2.line(undist_raw_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
+                        cv2.line(undist_raw_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
+                        
+                    result_ = "GT=%2.2f, Real=%2.2f"%(gt_deg, yaw_deg)
+                    cv2.putText(undist_raw_color, result_,(0, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                    cv2.imwrite(_path_prefix+"markers_"+filename, undist_raw_color)
 
                 #print("* Estimated rotation Angle(deg)", yaw_deg) if _verbose else None
                 #print("* Ground Truth rotation Angle(deg)", gt_deg) if _verbose else None
