@@ -2,7 +2,7 @@
     "use_camera":0,
     "verbose":1,
     "save_result":1,
-    "path":"/home/hwang-exp/dev/libppe/bin/testset/q_test/",
+    "path":"/home/libppe/bin/testset/q_test/",
     "roi_bound":10,
     "target_marker":20,
     "files":["pos_y_100mms.avi", "pos_y_150mms.avi", "pos_y_200mms.avi", "pos_y_250mms.avi", "pos_y_300mms.avi", "pos_y_350mms.avi", "pos_y_400mms.avi"],
