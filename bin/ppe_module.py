@@ -5,8 +5,8 @@ import json
 import cv2
 import numpy as np
 import os.path
-#import torch
-#import torchvision
+import torch
+import torchvision
 import math
 import argparse
 import csv
@@ -90,35 +90,19 @@ def estimate(json_camera_param, json_job_desc):
     '''
      getting developer options
     '''
-    if "verbose" in process_job:
-        _verbose = int(process_job["verbose"])
-    else:
-        _verbose = 0
-    if "use_camera" in process_job:
-        _use_camera = int(process_job["use_camera"])
-    else:
-        _use_camera = 0
-    if "save_result" in process_job:
-        _save_result = int(process_job["save_result"])
-    else:
-        _save_result = 0
-    if "yaw_gt_initial" in process_job:
-        _yaw_gt_initial = process_job["yaw_gt_initial"]
-    else:
-        _yaw_gt_initial = 0.0
-    if "yaw_gt" in process_job:
-        _yaw_gt = np.array(process_job["yaw_gt"], dtype=float)
-        _yaw_gt += _yaw_gt_initial
-    else:
-        _yaw_gt = np.array([], dtype=float)
+    _verbose = 0 if "verbose" not in process_job else int(process_job["verbose"])
+    _use_camera = 0 if "use_camera" not in process_job else int(process_job["use_camera"])
+    _save_result = 0 if "save_result" not in process_job else int(process_job["save_result"])
+    _x_direction = 1.0 if "x_direction" not in process_job else process_job["x_direction"]
+    _y_direction = 1.0 if "y_direction" not in process_job else process_job["y_direction"]
+    _yaw_direction = 1.0 if "yaw_direction" not in process_job else process_job["yaw_direction"]
         
     '''
      getting system & library check
     '''
     # get python version for different API functions prototype
     _python_version = list(map(int, cv2.__version__.split(".")))
-    if _verbose:
-        print("Installed Python version :", cv2.__version__)
+    print("* Installed Python version :", cv2.__version__) if _verbose else None
         
         
     '''
@@ -134,9 +118,7 @@ def estimate(json_camera_param, json_job_desc):
 
         
         # read camera parameters
-        if "fx" not in process_param or "fy" not in process_param or "cx" not in process_param or "cy" not in process_param or "coeff_k1" not in process_param or "coeff_k2" not in process_param or "coeff_p1" not in process_param or "coeff_p2" not in process_param:
-            raise UndefinedParamError("Some camera parameter(s) is missing")
-        else:
+        if all(key in process_param for key in ("fx","fy", "cx", "cy", "coeff_k1", "coeff_k2", "coeff_p1", "coeff_p2")):
             _fx = float(process_param["fx"])
             _fy = float(process_param["fy"])
             _cx = float(process_param["cx"])
@@ -145,6 +127,9 @@ def estimate(json_camera_param, json_job_desc):
             _k2 = float(process_param["coeff_k2"])
             _p1 = float(process_param["coeff_p1"])
             _p2 = float(process_param["coeff_p2"])
+        else:
+            raise UndefinedParamError("Some camera parameter(s) is missing")
+        
             
         if "wafer" not in process_param:
             raise UndefinedParamError("wafer is not defined")
@@ -206,19 +191,25 @@ def estimate(json_camera_param, json_job_desc):
         
         # processing
         estimated_yaw_deg = []
-        for filename in _image_files:
+        estimated_x_pos = []
+        estimated_y_pos = []
+        
+        for fid, filename in enumerate(_image_files):
             src_image = _path_prefix+filename # image full path
 
             if _verbose:
                 print("%s is now processing..."%src_image)
             
             raw_image = cv2.imread(src_image, cv2.IMREAD_UNCHANGED)
-            if raw_image.shape[2]==3: # if color image
-                raw_color = raw_image.copy()
-                raw_gray = cv2.cvtColor(raw_image, cv2.COLOR_BGR2GRAY)
+            if raw_image is not None:
+                if raw_image.shape[2]==3: # if color image
+                    raw_color = raw_image.copy()
+                    raw_gray = cv2.cvtColor(raw_image, cv2.COLOR_BGR2GRAY)
+                else:
+                    raw_gray = raw_image.copy()
+                    raw_color = cv2.cvtColor(raw_image, cv2.COLOR_GRAY2BGR)
             else:
-                raw_gray = raw_image.copy()
-                raw_color = cv2.cvtColor(raw_image, cv2.COLOR_GRAY2BGR)
+                raise ValueError("Image is empty")
                 
             undist_raw_gray = cv2.undistort(raw_gray, intrinsic_mtx, distorsion_mtx, None, newcamera_mtx) # undistortion by camera parameters
             undist_raw_gray = cv2.bitwise_not(undist_raw_gray) # color inversion
@@ -271,11 +262,42 @@ def estimate(json_camera_param, json_job_desc):
                 _, prVec, ptVec = cv2.solvePnP(marker_centroids_on_wafer, marker_centroids_on_image, cameraMatrix=intrinsic_mtx, distCoeffs=None, rvec=None, tvec=None, useExtrinsicGuess=None, flags=cv2.SOLVEPNP_SQPNP)
                 R, jacobian = cv2.Rodrigues(rVec) # rotation vector to matrix
                 
-                # save yaw angles
+                # save estimated results
+                estimated_x = (_x_direction*ptVec[0])[0]
+                estimated_y = (_y_direction*ptVec[1])[0]
+                yaw_deg = _yaw_direction*np.rad2deg(math.atan2(-R[1][0], R[0][0]))
+                
+                estimated_x_pos.append(estimated_x)
+                estimated_y_pos.append(estimated_y)
+                estimated_yaw_deg.append(yaw_deg)
+                
                 estimated_yaw_deg.append(np.rad2deg(math.atan2(-R[1][0], R[0][0])))
 
                 if _verbose:
                     print("Rotation Angle", -1*np.rad2deg(math.atan2(-R[1][0], R[0][0])))
+                    
+                if _save_result:
+                    for idx, pts in enumerate(marker_centroids_on_image):
+                        p = tuple(pts.round().astype(int))
+                        
+                        str_image_pos = "on image : [%d] x=%2.2f,y=%2.2f"%(ids[idx], pts[0], pts[1])
+                        str_world_pos = "on wafer : x=%2.2f,y=%2.2f"%(marker_centroids_on_wafer[idx][0], marker_centroids_on_wafer[idx][1])
+                        #print("marker :",str_image_pos, str_world_pos) if _verbose else None
+                        
+                        cv2.putText(undist_raw_color, str_image_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+                        cv2.putText(undist_raw_color, str_world_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+                        cv2.line(undist_raw_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
+                        cv2.line(undist_raw_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
+                        
+                        op_x = np.round(_cx).astype(int)
+                        op_y = np.round(_cy).astype(int)
+                        str_image_op_pos = "OC_img : x=%2.2f,y=%2.2f"%(_cx, _cy)
+                        str_world_op_pos = "OC_real : x=%2.2f,y=%2.2f"%(_x_direction*ptVec[0], _y_direction*ptVec[1])
+                        cv2.putText(undist_raw_color, str_image_op_pos,(op_x+10, op_y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                        cv2.putText(undist_raw_color, str_world_op_pos,(op_x+10, op_y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                        cv2.line(undist_raw_color, (op_x-10,op_y), (op_x+10,op_y), (0,0,255), 1, cv2.LINE_AA) # optical center
+                        cv2.line(undist_raw_color, (op_x,op_y-10), (op_x,op_y+10), (0,0,255), 1, cv2.LINE_AA)
+                    cv2.imwrite(_path_prefix+"markers_"+filename, undist_raw_color)
                 
                 # testing for 3D to 2D
                 #np.array([[130.0, 210.0, 0.0]], dtype=float)
@@ -289,53 +311,16 @@ def estimate(json_camera_param, json_job_desc):
                     cv2.line(undist_raw_color, (image_ptsi[0],image_ptsi[1]-10), (image_ptsi[0],image_ptsi[1]+10), (0,255,255), 1, cv2.LINE_AA)
                     cv2.imwrite(_path_prefix+"temp_"+filename, undist_raw_color)
                 
-
-                
-
-                
-                #point_2D = (437.06, 511.31)
-                # point_2D = (418.06, 513.01)
-
-                # # Convert the point to homogeneous coordinates
-                # point_2D_homogeneous = np.array([419.0, 514.0, 0]).reshape(3, 1)
-
-                # # Define the intrinsic camera matrix and extrinsic parameters (rotation and translation)
-                # R = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])  # Rotation matrix
-                # #T = np.array([0, 0, 0])  # Translation vector
-
-                # # Compute the 3D point in camera coordinates
-                # point_3D_camera_homogeneous = np.dot(np.linalg.inv(newcamera_mtx), point_2D_homogeneous)
-                # point_3D_camera_homogeneous = np.vstack((point_3D_camera_homogeneous, [1]))  # Add homogeneous coordinate
-                # point_3D_camera = np.dot(np.hstack((R, tVec.reshape(3, 1))), point_3D_camera_homogeneous)
-                # point_3D_camera = point_3D_camera[:3, 0]  # Convert homogeneous coordinate to 3D point
-                # print("point_3D_camera", point_3D_camera)
-
-                
-                # testing for coordinate conversion (2D to 3D)
-                #image_pts = np.array([[275.66, 411.34]], dtype=float) # world = (130, 210)
-                #world_pts = cv2.undistortPoints(np.expand_dims(image_pts, axis=1), cameraMatrix=newcamera_mtx, distCoeffs=distorsion_mtx, R=None, P=None)
-                #world_pts = world_pts.squeeze()
-                #print("world point",world_pts)
-                
-                #print(undistort_unproject_pts(image_pts, newcamera_mtx, distorsion_mtx))
-                
-                # ptsOut = np.array(corners, dtype='float32')
-                # ptsTemp = np.array([], dtype='float32')
-                # rtemp = ttemp = np.array([0,0,0], dtype='float32')
-                # image_pts = cv2.undistortPoints(image_pts, newcamera_mtx, None)
-                # ptsTemp = cv2.convertPointsToHomogeneous(image_pts)
-                # output = cv2.projectPoints( ptsTemp, rtemp, ttemp, newcamera_mtx, distorsion_mtx, ptsOut )\
                 
                 
-                
+                # final outputs
                 p_dic = {}
-                p_dic["wafer_x"] = 0.0
-                p_dic["wafer_x"] = 0.0
-                p_dic["wafer_y"] = 0.0
-                p_dic["wafer_z"] = 0.0
+                p_dic["wafer_x"] = estimated_x
+                p_dic["wafer_y"] = estimated_y
+                p_dic["wafer_z"] = _laser_distance[fid]
                 p_dic["wafer_r"] = 0.0
                 p_dic["wafer_p"] = 0.0
-                p_dic["wafer_w"] = 0.0
+                p_dic["wafer_w"] = estimated_yaw_deg
                 p_dic["effector_x"] = 0.0
                 p_dic["effector_y"] = 0.0
                 p_dic["effector_z"] = 0.0
@@ -347,27 +332,13 @@ def estimate(json_camera_param, json_job_desc):
             else:
                 print("Not enough markers are detected")
         
-        # for report (yaw angle)
-        if _yaw_gt.size>0:
-            estimated_yaw_deg = np.abs(np.array(estimated_yaw_deg))
-            yaw_rmse = np.sqrt(np.mean((estimated_yaw_deg-_yaw_gt)**2))
-            print("* RMSE Rotation(Yaw deg)", yaw_rmse)
-            if _save_result:
-                with open('yaw_rotation.csv', 'w') as f:
-                    rot_out_file = csv.writer(f)
-                    rot_out_file.writerow(["index", "Estimated", "Ground Truth"])
-                    for idx, deg in enumerate(_yaw_gt):
-                        rot_out_file.writerow([idx, estimated_yaw_deg[idx], _yaw_gt[idx]])
-        
-                
-        # dumps into json result        
-        json_result = json.dumps(result_dic)
-        
     except json.decoder.JSONDecodeError :
         print("Error : Decoding Job Description has failed")
     except (ValueError, UndefinedParamError) as e:
         print("Error : ",e)
-
+        
+                
+    # dumps into json result        
     json_result = json.dumps(result_dic)
     return json_result
 
