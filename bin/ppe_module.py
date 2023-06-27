@@ -11,6 +11,9 @@ import math
 import argparse
 import csv
 import pathlib
+from torchvision.models import detection
+from models.experimental import attempt_load
+from utils.general import non_max_suppression
 
 # define working path
 WORKING_PATH = pathlib.Path(__file__).parent
@@ -91,6 +94,16 @@ def estimate(process_param, process_job):
     _x_direction = 1.0 if "x_direction" not in process_job else process_job["x_direction"]
     _y_direction = 1.0 if "y_direction" not in process_job else process_job["y_direction"]
     _yaw_direction = 1.0 if "yaw_direction" not in process_job else process_job["yaw_direction"]
+    _forktip_model = WORKING_PATH.joinpath("forktip_type1.pt") if "forktip_model" not in process_job else WORKING_PATH.joinpath(process_job["forktip_model"])
+    _working_path = WORKING_PATH if "path" not in process_job else WORKING_PATH.joinpath(process_job["path"])
+
+    '''
+    forktip detection model load
+    '''
+    # fork_detection_model = torch.load(_forktip_model)
+    fork_detection_model = attempt_load(_forktip_model, device='cpu')
+    fork_detection_model.eval()
+
         
     '''
      getting system & library check
@@ -166,8 +179,8 @@ def estimate(process_param, process_job):
         if "files" not in process_job or "path" not in process_job:
             raise UndefinedParamError("files and path are not defined")
         _image_files = np.array(process_job["files"])
-        _path_prefix = process_job["path"]
-        image_files_path = np.array([_path_prefix+f for f in _image_files])
+        image_files_path = np.array([_working_path / pathlib.Path(f) for f in _image_files])
+        
         
         # measured distance check
         if "laser_wafer_distance" not in process_job:
@@ -190,7 +203,7 @@ def estimate(process_param, process_job):
         estimated_y_pos = []
         
         for fid, filename in enumerate(_image_files):
-            src_image = _path_prefix+filename # image full path
+            src_image = str(_working_path / pathlib.Path(filename))
 
             if _verbose:
                 print("%s is now processing..."%src_image)
@@ -208,7 +221,8 @@ def estimate(process_param, process_job):
                 
             undist_raw_gray = cv2.undistort(raw_gray, intrinsic_mtx, distorsion_mtx, None, newcamera_mtx) # undistortion by camera parameters
             undist_raw_gray = cv2.bitwise_not(undist_raw_gray) # color inversion
-            undist_raw_color = cv2.cvtColor(undist_raw_gray, cv2.COLOR_GRAY2BGR)
+            undist_raw_color = cv2.cvtColor(undist_raw_gray, cv2.COLOR_GRAY2BGR) # for draw results
+            undist_color_result = cv2.cvtColor(undist_raw_gray, cv2.COLOR_GRAY2BGR) # for draw results
             
             
             # find markers printed on reference wafer
@@ -240,15 +254,14 @@ def estimate(process_param, process_job):
                     for idx, pts in enumerate(marker_centroids_on_image):
                         p = tuple(pts.round().astype(int))
                         
-                        str_image_pos = "on image : [%d] x=%2.2f,y=%2.2f"%(ids[idx], pts[0], pts[1])
+                        str_image_pos = "on image : [%d] x=%2.2f,y=%2.2f"%(ids[idx].item(), pts[0], pts[1])
                         str_world_pos = "on wafer : x=%2.2f,y=%2.2f"%(marker_centroids_on_wafer[idx][0], marker_centroids_on_wafer[idx][1])
                         if _verbose:
                             print("marker :",str_image_pos, str_world_pos)
-                        cv2.putText(undist_raw_color, str_image_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                        cv2.putText(undist_raw_color, str_world_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                        cv2.line(undist_raw_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
-                        cv2.line(undist_raw_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
-                    cv2.imwrite(_path_prefix+"markers_"+filename, undist_raw_color)
+                        cv2.putText(undist_color_result, str_image_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                        cv2.putText(undist_color_result, str_world_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                        cv2.line(undist_color_result, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
+                        cv2.line(undist_color_result, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
                 
             
                 # compute 2D-3D corredpondence with Perspective N Point'
@@ -275,24 +288,23 @@ def estimate(process_param, process_job):
                     for idx, pts in enumerate(marker_centroids_on_image):
                         p = tuple(pts.round().astype(int))
                         
-                        str_image_pos = "on image : [%d] x=%2.2f,y=%2.2f"%(ids[idx], pts[0], pts[1])
+                        str_image_pos = "on image : [%d] x=%2.2f,y=%2.2f"%(ids[idx].item(), pts[0], pts[1])
                         str_world_pos = "on wafer : x=%2.2f,y=%2.2f"%(marker_centroids_on_wafer[idx][0], marker_centroids_on_wafer[idx][1])
                         #print("marker :",str_image_pos, str_world_pos) if _verbose else None
                         
-                        cv2.putText(undist_raw_color, str_image_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
-                        cv2.putText(undist_raw_color, str_world_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
-                        cv2.line(undist_raw_color, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
-                        cv2.line(undist_raw_color, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
+                        cv2.putText(undist_color_result, str_image_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+                        cv2.putText(undist_color_result, str_world_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+                        cv2.line(undist_color_result, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
+                        cv2.line(undist_color_result, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
                         
                         op_x = np.round(_cx).astype(int)
                         op_y = np.round(_cy).astype(int)
                         str_image_op_pos = "OC_img : x=%2.2f,y=%2.2f"%(_cx, _cy)
-                        str_world_op_pos = "OC_real : x=%2.2f,y=%2.2f"%(_x_direction*ptVec[0], _y_direction*ptVec[1])
-                        cv2.putText(undist_raw_color, str_image_op_pos,(op_x+10, op_y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-                        cv2.putText(undist_raw_color, str_world_op_pos,(op_x+10, op_y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-                        cv2.line(undist_raw_color, (op_x-10,op_y), (op_x+10,op_y), (0,0,255), 1, cv2.LINE_AA) # optical center
-                        cv2.line(undist_raw_color, (op_x,op_y-10), (op_x,op_y+10), (0,0,255), 1, cv2.LINE_AA)
-                    cv2.imwrite(_path_prefix+"markers_"+filename, undist_raw_color)
+                        str_world_op_pos = "OC_real : x=%2.2f,y=%2.2f"%(_x_direction*ptVec[0].item(), _y_direction*ptVec[1].item())
+                        cv2.putText(undist_color_result, str_image_op_pos,(op_x+10, op_y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                        cv2.putText(undist_color_result, str_world_op_pos,(op_x+10, op_y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                        cv2.line(undist_color_result, (op_x-10,op_y), (op_x+10,op_y), (0,0,255), 1, cv2.LINE_AA) # optical center
+                        cv2.line(undist_color_result, (op_x,op_y-10), (op_x,op_y+10), (0,0,255), 1, cv2.LINE_AA)
                 
                 # testing for 3D to 2D
                 #np.array([[130.0, 210.0, 0.0]], dtype=float)
@@ -301,11 +313,14 @@ def estimate(process_param, process_job):
                     image_pts = image_pts.squeeze()
                     str_pos = "x=%2.2f,y=%2.2f"%(image_pts[0], image_pts[1])
                     image_ptsi = (image_pts.round().astype(int))
-                    cv2.putText(undist_raw_color, str_pos,(image_ptsi[0]+10, image_ptsi[1]+20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
-                    cv2.line(undist_raw_color, (image_ptsi[0]-10,image_ptsi[1]), (image_ptsi[0]+10,image_ptsi[1]), (0,255,255), 1, cv2.LINE_AA)
-                    cv2.line(undist_raw_color, (image_ptsi[0],image_ptsi[1]-10), (image_ptsi[0],image_ptsi[1]+10), (0,255,255), 1, cv2.LINE_AA)
-                    cv2.imwrite(_path_prefix+"temp_"+filename, undist_raw_color)
-                
+                    cv2.putText(undist_color_result, str_pos,(image_ptsi[0]+10, image_ptsi[1]+20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+                    cv2.line(undist_color_result, (image_ptsi[0]-10,image_ptsi[1]), (image_ptsi[0]+10,image_ptsi[1]), (0,255,255), 1, cv2.LINE_AA)
+                    cv2.line(undist_color_result, (image_ptsi[0],image_ptsi[1]-10), (image_ptsi[0],image_ptsi[1]+10), (0,255,255), 1, cv2.LINE_AA)
+                    
+
+                # finally save image
+                if _save_result:
+                    cv2.imwrite(str(_working_path / pathlib.Path("out_"+filename)), undist_color_result)
                 
                 
                 # final outputs
@@ -326,6 +341,28 @@ def estimate(process_param, process_job):
                 result_dic[filename] = p_dic
             else:
                 print("Not enough markers are detected")
+
+            # fork-tip detection
+            try:
+                with torch.no_grad():
+                    print("detecting forktip...")
+                    img = undist_raw_color[:, :, ::-1].transpose(2, 0, 1) # BGR to RGB
+                    img = np.ascontiguousarray(img)
+                    img = torch.from_numpy(img).to("cpu")
+                    img = img.float()
+                    img /= 255.0
+                    if img.ndimension() == 3:
+                        img = img.unsqueeze(0)
+
+                    pred = fork_detection_model(img, augment=False)[0]
+                    print('pred shape:', pred.shape)
+                    pred = non_max_suppression(pred, 0.25, 0.45, classes=['tip'], agnostic=False)
+                    det = pred[0]
+                    print('det shape:', det.shape)
+                    print(det)
+                    
+            except TypeError as e:
+                print("Error : ", e)
         
     except json.decoder.JSONDecodeError :
         print("Error : Decoding Job Description has failed")
