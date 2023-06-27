@@ -6,7 +6,7 @@
     "y_direction":1.0,
     "yaw_direction":-1.0,
     "forktip_model":"forktip_type1.pt",
-    "path":"testset/effector/effector_move_1/",
-    "files":["effector_move_1_189.png"],
+    "path":"testset/effector/",
+    "files":["test.png"],
     "laser_wafer_distance":[100.0]
 }

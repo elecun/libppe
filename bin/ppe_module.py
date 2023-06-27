@@ -13,7 +13,9 @@ import csv
 import pathlib
 from torchvision.models import detection
 from models.experimental import attempt_load
-from utils.general import non_max_suppression
+from utils.general import non_max_suppression, scale_boxes
+from utils.plots import colors, save_one_box
+from math import atan2, cos, sin, sqrt, pi
 
 # define working path
 WORKING_PATH = pathlib.Path(__file__).parent
@@ -68,6 +70,96 @@ def undistort_unproject_pts(pts_uv, camera_matrix, dist_coefs):
     return pts_3d
 
 '''
+Compute orientation with PCA
+'''
+def draw_axis(img, p_, q_, colour, scale):
+    p = list(p_)
+    q = list(q_)
+    angle = atan2(p[1] - q[1], p[0] - q[0]) # angle in radians
+    hypotenuse = sqrt((p[1] - q[1]) * (p[1] - q[1]) + (p[0] - q[0]) * (p[0] - q[0]))
+    # Here we lengthen the arrow by a factor of scale
+    q[0] = p[0] - scale * hypotenuse * cos(angle)
+    q[1] = p[1] - scale * hypotenuse * sin(angle)
+    cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv2.LINE_AA)
+    # create the arrow hooks
+    p[0] = q[0] + 9 * cos(angle + pi / 4)
+    p[1] = q[1] + 9 * sin(angle + pi / 4)
+    cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv2.LINE_AA)
+    p[0] = q[0] + 9 * cos(angle - pi / 4)
+    p[1] = q[1] + 9 * sin(angle - pi / 4)
+    cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv2.LINE_AA)
+
+def calc_orientation(pts, img):
+    sz = len(pts)
+    data_pts = np.empty((sz, 2), dtype=np.float64)
+    for i in range(data_pts.shape[0]):
+        data_pts[i,0] = pts[i,0,0]
+        data_pts[i,1] = pts[i,0,1]
+    # Perform PCA analysis
+    mean = np.empty((0))
+    mean, eigenvectors, eigenvalues = cv2.PCACompute2(data_pts, mean)
+    # Store the center of the object
+    cntr = (int(mean[0,0]), int(mean[0,1]))
+    cv2.circle(img, cntr, 3, (255, 0, 255), 2)
+    p1 = (cntr[0] + 0.02 * eigenvectors[0,0] * eigenvalues[0,0], cntr[1] + 0.02 *  eigenvectors[0,1] * eigenvalues[0,0])
+    p2 = (cntr[0] - 0.02 * eigenvectors[1,0] * eigenvalues[1,0], cntr[1] - 0.02 * eigenvectors[1,1] * eigenvalues[1,0])
+    draw_axis(img, cntr, p1, (0, 150, 0), 1)
+    draw_axis(img, cntr, p2, (200, 150, 0), 5)
+    angle = atan2(eigenvectors[0,1], eigenvectors[0,0]) # orientation in radians
+    return angle
+
+
+'''
+Forktip Detection with YOLOv5 Detection Model
+'''
+def forktip_detection(model, image, save_result):
+    with torch.no_grad():
+        img = image[:, :, ::-1].transpose(2, 0, 1) # BGR to RGB
+        img = np.ascontiguousarray(img)
+        img = torch.from_numpy(img).to("cpu")
+        img = img.float()
+        img /= 255.0
+        if img.ndimension() == 3:
+            img = img.unsqueeze(0)
+
+        pred = model(img, augment=False)[0]
+        print('pred shape:', pred.shape)
+        pred = non_max_suppression(pred, 0.5, 0.45, classes=['tip'], agnostic=False)
+        det = pred[0]
+        print('det shape:', det.shape)
+        print(det)
+
+        # if len(det):
+        #     # Rescale boxes from img_size to img0 size
+        #     det[:, :4] = scale_boxes(img.shape[2:], det[:, :4], img.shape).round()
+
+        # if it is detected
+        xyxy = [(0,0), (1,1)] # <-- bounding box position of image : [0:4] : (x1,y1), (x2,y2), confidence score
+        x = 0
+        y = 0
+        h = 10
+        w = 10
+        if len(det):
+            roi_image = image[y:y+h, x:x+w].copy()
+            gray_roi_image = cv2.cvtColor(roi_image, cv2.COLOR_BGR2GRAY)
+            _, bin_roi_image = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY|cv2.THRESH_OTSU)
+
+            # contour
+            contours, _ = cv2.findContours(bin_roi_image, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+            for i,c in enumerate(contours):
+                # area of each contour
+                area = cv2.contourArea(c)
+                # ignore contour which is too small or large
+                if area < 1e2 or 1e5 < area:
+                    continue
+
+                if save_result:
+                    # draw each contour only for visualization
+                    cv2.drawContours(img, contours, i, (0, 0, 255), 2)
+                # find orientation of each shape
+                calc_orientation(c,img)
+
+'''
  Undefined Parameter key Exception
 '''
 class UndefinedParamError(Exception):
@@ -85,9 +177,7 @@ class UndefinedParamError(Exception):
 def estimate(process_param, process_job):
     result_dic = {} # estimated results (dictionary type for converting json)
              
-    '''
-     getting developer options
-    '''
+    ##### getting developer options
     _verbose = 0 if "verbose" not in process_job else int(process_job["verbose"])
     _use_camera = 0 if "use_camera" not in process_job else int(process_job["use_camera"])
     _save_result = 0 if "save_result" not in process_job else int(process_job["save_result"])
@@ -97,10 +187,7 @@ def estimate(process_param, process_job):
     _forktip_model = WORKING_PATH.joinpath("forktip_type1.pt") if "forktip_model" not in process_job else WORKING_PATH.joinpath(process_job["forktip_model"])
     _working_path = WORKING_PATH if "path" not in process_job else WORKING_PATH.joinpath(process_job["path"])
 
-    '''
-    forktip detection model load
-    '''
-    # fork_detection_model = torch.load(_forktip_model)
+    ##### forktip detection model load
     fork_detection_model = attempt_load(_forktip_model, device='cpu')
     fork_detection_model.eval()
 
@@ -113,9 +200,6 @@ def estimate(process_param, process_job):
     print("* Installed Python version :", cv2.__version__) if _verbose else None
         
         
-    '''
-    main code below
-    ''' 
     try:
         
         # read image resolution
@@ -321,6 +405,9 @@ def estimate(process_param, process_job):
                 # finally save image
                 if _save_result:
                     cv2.imwrite(str(_working_path / pathlib.Path("out_"+filename)), undist_color_result)
+
+                # forktip detection
+                forktip_detection(fork_detection_model, undist_raw_color, _save_result)
                 
                 
                 # final outputs
@@ -341,28 +428,6 @@ def estimate(process_param, process_job):
                 result_dic[filename] = p_dic
             else:
                 print("Not enough markers are detected")
-
-            # fork-tip detection
-            try:
-                with torch.no_grad():
-                    print("detecting forktip...")
-                    img = undist_raw_color[:, :, ::-1].transpose(2, 0, 1) # BGR to RGB
-                    img = np.ascontiguousarray(img)
-                    img = torch.from_numpy(img).to("cpu")
-                    img = img.float()
-                    img /= 255.0
-                    if img.ndimension() == 3:
-                        img = img.unsqueeze(0)
-
-                    pred = fork_detection_model(img, augment=False)[0]
-                    print('pred shape:', pred.shape)
-                    pred = non_max_suppression(pred, 0.25, 0.45, classes=['tip'], agnostic=False)
-                    det = pred[0]
-                    print('det shape:', det.shape)
-                    print(det)
-                    
-            except TypeError as e:
-                print("Error : ", e)
         
     except json.decoder.JSONDecodeError :
         print("Error : Decoding Job Description has failed")
