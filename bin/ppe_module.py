@@ -10,6 +10,10 @@ import torchvision
 import math
 import argparse
 import csv
+import pathlib
+
+# define working path
+WORKING_PATH = pathlib.Path(__file__).parent
         
 
 '''
@@ -73,19 +77,10 @@ class UndefinedParamError(Exception):
 
 '''
  estimation processing with already saved image frame (from job description)
+ [Note] if it has a problem of performance, try code below into c++
 '''
-def estimate(json_camera_param, json_job_desc):
+def estimate(process_param, process_job):
     result_dic = {} # estimated results (dictionary type for converting json)
-
-    '''
-    load job & parameters
-    '''
-    # load job & parameters from string arguments
-    try:
-        process_job = json.loads(json_job_desc)
-        process_param = json.loads(json_camera_param)
-    except json.decoder.JSONDecodeError:
-        print("Job & Parameters decoding error is occured")
              
     '''
      getting developer options
@@ -349,9 +344,18 @@ if __name__ == "__main__":
     parser.add_argument('--job', nargs='?', required=True, help="Job file")
     args = parser.parse_args()
     
-    with open(args.config, 'r') as file:
-        config = json.load(file)
-    with open(args.job, 'r') as file:
-        job = json.load(file)
-    
-    estimate(json.dumps(config), json.dumps(job))
+    config_path = WORKING_PATH / pathlib.Path(args.config)
+    job_path = WORKING_PATH / pathlib.Path(args.job)
+
+    try :
+        with open(config_path, 'r') as file:
+            config = json.load(file)
+        with open(job_path, 'r') as file:
+            job = json.load(file)
+    except json.decoder.JSONDecodeError:
+        print("Job & Parameters decoding error is occured")
+    except FileNotFoundError:
+        print("File does not exist")
+    else:
+        #estimate(json.dumps(config), json.dumps(job))
+        estimate(config, job)

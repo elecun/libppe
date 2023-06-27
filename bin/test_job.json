@@ -5,7 +5,8 @@
     "x_direction":-1.0,
     "y_direction":1.0,
     "yaw_direction":-1.0,
-    "path":"/home/libppe/bin/testset/",
-    "files":["pos_0.png","pos_1.png"],
-    "laser_wafer_distance":[100.0, 99.0]
+    "forktip_model":"forktip_v1.pt",
+    "path":"/testset/effector_move_1/",
+    "files":["effector_move_1_189.png"],
+    "laser_wafer_distance":[100.0]
 }
