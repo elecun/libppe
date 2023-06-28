@@ -128,6 +128,8 @@ def forktip_detection(model, image, save_result):
         det = pred[0]
         print('det shape:', det.shape)
         print(det)
+        
+        return pred[0]
 
         # if len(det):
         #     # Rescale boxes from img_size to img0 size
@@ -407,7 +409,45 @@ def estimate(process_param, process_job):
                     cv2.imwrite(str(_working_path / pathlib.Path("out_"+filename)), undist_color_result)
 
                 # forktip detection
-                forktip_detection(fork_detection_model, undist_raw_color, _save_result)
+                fork_roi = forktip_detection(fork_detection_model, undist_raw_color, _save_result)
+                #if len(fork_roi): #if found
+                    # compute PCA to get the principal axis
+                    
+                # for test if image can be extracted by detection
+                roi_image_path = str(_working_path / pathlib.Path("test_roi.png"))
+                roi_image = cv2.imread(roi_image_path, cv2.IMREAD_UNCHANGED)
+                roi_image_show = roi_image.copy()
+                h, w = roi_image_show.shape[:2]
+                if roi_image is not None:
+                    if roi_image.shape[2]==3: # if color image
+                        roi_color = roi_image.copy()
+                        roi_gray = cv2.cvtColor(roi_color, cv2.COLOR_BGR2GRAY)
+                        roi_bw = cv2.bitwise_not(roi_gray)
+                        _, roi_bw = cv2.threshold(roi_bw, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                        
+                        img_sobel_x = cv2.Sobel(roi_bw, cv2.CV_64F, 1, 0, ksize=3)
+                        img_sobel_x = cv2.convertScaleAbs(img_sobel_x)
+                        img_sobel_y = cv2.Sobel(roi_bw, cv2.CV_64F, 0, 1, ksize=3)
+                        img_sobel_y = cv2.convertScaleAbs(img_sobel_y)
+                        img_sobel = cv2.addWeighted(img_sobel_x, 1, img_sobel_y, 1, 0)
+                        
+                        # find hough line
+                        rho, theta, thresh = 2, np.pi/180, 400
+                        lines = cv2.HoughLines(img_sobel, rho, theta, thresh)
+                        for line in lines:
+                            r,theta = line[0]
+                            tx, ty = np.cos(theta), np.sin(theta)
+                            x0, y0 = tx*r, ty*r
+                            #cv2.circle(roi_image_show, (abs(x0), abs(y0)), 3, (0,0,255), -1)
+                            x1, y1 = int(x0 + w*(-ty)), int(y0 + h * tx)
+                            x2, y2 = int(x0 - w*(-ty)), int(y0 - h * tx)
+                            cv2.line(roi_image_show, (x1, y1), (x2, y2), (0,255,0), 1)
+
+                        cv2.imwrite("test_roi_r.png", roi_image_show)
+                else:
+                    raise ValueError("Image is empty")
+                    
+                    
                 
                 
                 # final outputs
@@ -459,5 +499,4 @@ if __name__ == "__main__":
     except FileNotFoundError:
         print("File does not exist")
     else:
-        #estimate(json.dumps(config), json.dumps(job))
         estimate(config, job)
