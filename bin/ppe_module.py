@@ -11,11 +11,19 @@ import math
 import argparse
 import csv
 import pathlib
+import platform
 from torchvision.models import detection
 from models.experimental import attempt_load
 from utils.general import non_max_suppression, scale_boxes
 from utils.plots import colors, save_one_box
 from math import atan2, cos, sin, sqrt, pi
+
+from models.common import DetectMultiBackend
+from utils.dataloaders import IMG_FORMATS, VID_FORMATS, LoadImages, LoadScreenshots, LoadStreams
+from utils.general import (LOGGER, Profile, check_file, check_img_size, check_imshow, check_requirements, colorstr, cv2,
+                           increment_path, non_max_suppression, print_args, scale_boxes, strip_optimizer, xyxy2xywh)
+from utils.plots import Annotator, colors, save_one_box
+from utils.torch_utils import select_device, smart_inference_mode
 
 # define working path
 WORKING_PATH = pathlib.Path(__file__).parent
@@ -109,57 +117,94 @@ def calc_orientation(pts, img):
     return angle
 
 
-'''
-Forktip Detection with YOLOv5 Detection Model
-'''
-def forktip_detection(model, image, save_result):
-    with torch.no_grad():
-        img = image[:, :, ::-1].transpose(2, 0, 1) # BGR to RGB
-        img = np.ascontiguousarray(img)
-        img = torch.from_numpy(img).to("cpu")
-        img = img.float()
-        img /= 255.0
-        if img.ndimension() == 3:
-            img = img.unsqueeze(0)
+def canny_auto(image, sigma=0.1):
+    v = np.mean(image)
+    lower = int(max(0, (1.0-sigma)*v))
+    upper = int(min(255, (1.0+sigma)*v))
+    edged = cv2.Canny(image, lower, upper)
+    return edged
 
-        pred = model(img, augment=False)[0]
-        print('pred shape:', pred.shape)
-        pred = non_max_suppression(pred, 0.5, 0.45, classes=['tip'], agnostic=False)
-        det = pred[0]
-        print('det shape:', det.shape)
-        print(det)
-        
-        return pred[0]
+@smart_inference_mode()
+def detect_forktip(
+    weights=WORKING_PATH / 'yolov5s.pt',  # model path or triton URL
+    source=WORKING_PATH / 'data/images',  # file/dir/URL/glob/screen/0(webcam)
+    data=WORKING_PATH / 'data/coco128.yaml',  # dataset.yaml path
+    imgsz=(1280, 960),  # inference size (height, width)
+    conf_thres=0.25,  # confidence threshold
+    iou_thres=0.45,  # NMS IOU threshold
+    max_det=1000,  # maximum detections per image
+    device='',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
+    view_img=False,  # show results
+    save_txt=False,  # save results to *.txt
+    save_conf=False,  # save confidences in --save-txt labels
+    save_crop=False,  # save cropped prediction boxes
+    nosave=False,  # do not save images/videos
+    classes=None,  # filter by class: --class 0, or --class 0 2 3
+    agnostic_nms=False,  # class-agnostic NMS
+    augment=False,  # augmented inference
+    visualize=False,  # visualize features
+    update=False,  # update all models
+    project=WORKING_PATH / 'runs/detect',  # save results to project/name
+    name='exp',  # save results to project/name
+    exist_ok=False,  # existing project/name ok, do not increment
+    line_thickness=3,  # bounding box thickness (pixels)
+    hide_labels=False,  # hide labels
+    hide_conf=False,  # hide confidences
+    half=False,  # use FP16 half-precision inference
+    dnn=False,  # use OpenCV DNN for ONNX inference
+    vid_stride=1,  # video frame-rate stride
+):
+    source = str(source)
+    save_img = not nosave and not source.endswith('.txt')  # save inference images
+    is_file = pathlib.Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
+    screenshot = source.lower().startswith('screen')
 
-        # if len(det):
-        #     # Rescale boxes from img_size to img0 size
-        #     det[:, :4] = scale_boxes(img.shape[2:], det[:, :4], img.shape).round()
+    # Directories
+    save_dir = increment_path(pathlib.Path(project) / name, exist_ok=exist_ok)  # increment run
+    (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
-        # if it is detected
-        xyxy = [(0,0), (1,1)] # <-- bounding box position of image : [0:4] : (x1,y1), (x2,y2), confidence score
-        x = 0
-        y = 0
-        h = 10
-        w = 10
-        if len(det):
-            roi_image = image[y:y+h, x:x+w].copy()
-            gray_roi_image = cv2.cvtColor(roi_image, cv2.COLOR_BGR2GRAY)
-            _, bin_roi_image = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY|cv2.THRESH_OTSU)
+    # Load model
+    device = torch.device('cpu')
+    model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
+    stride, names, pt = model.stride, model.names, model.pt
+    imgsz = check_img_size(imgsz, s=stride)  # check image size
 
-            # contour
-            contours, _ = cv2.findContours(bin_roi_image, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-            for i,c in enumerate(contours):
-                # area of each contour
-                area = cv2.contourArea(c)
-                # ignore contour which is too small or large
-                if area < 1e2 or 1e5 < area:
-                    continue
+    # Dataloader
+    bs = 1  # batch_size
+    dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
+    vid_path, vid_writer = [None] * bs, [None] * bs
 
-                if save_result:
-                    # draw each contour only for visualization
-                    cv2.drawContours(img, contours, i, (0, 0, 255), 2)
-                # find orientation of each shape
-                calc_orientation(c,img)
+    # Run inference
+    model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup
+    seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
+    result_bb = []
+    
+    for path, im, im0s, vid_cap, s in dataset:
+        with dt[0]:
+            im = torch.from_numpy(im).to(model.device)
+            im = im.half() if model.fp16 else im.float()  # uint8 to fp16/32
+            im /= 255  # 0 - 255 to 0.0 - 1.0
+            if len(im.shape) == 3:
+                im = im[None]  # expand for batch dim
+
+        # Inference
+        with dt[1]:
+            visualize = increment_path(save_dir / pathlib.Path(path).stem, mkdir=True) if visualize else False
+            pred = model(im, augment=augment, visualize=visualize)
+
+        # NMS
+        with dt[2]:
+            pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
+            
+        # process predictions
+        for i, det in enumerate(pred):  # per image
+            seen += 1
+            p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
+            if len(det):
+                det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
+                result_bb.append(det.numpy().ravel())
+        LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")        
+    return result_bb
 
 '''
  Undefined Parameter key Exception
@@ -186,6 +231,7 @@ def estimate(process_param, process_job):
     _x_direction = 1.0 if "x_direction" not in process_job else process_job["x_direction"]
     _y_direction = 1.0 if "y_direction" not in process_job else process_job["y_direction"]
     _yaw_direction = 1.0 if "yaw_direction" not in process_job else process_job["yaw_direction"]
+    _forktip_roi_confidence = 0.5 if "forktip_roi_confidence" not in process_job else process_job["forktip_roi_confidence"]
     _forktip_model = WORKING_PATH.joinpath("forktip_type1.pt") if "forktip_model" not in process_job else WORKING_PATH.joinpath(process_job["forktip_model"])
     _working_path = WORKING_PATH if "path" not in process_job else WORKING_PATH.joinpath(process_job["path"])
 
@@ -193,24 +239,18 @@ def estimate(process_param, process_job):
     fork_detection_model = attempt_load(_forktip_model, device='cpu')
     fork_detection_model.eval()
 
-        
-    '''
-     getting system & library check
-    '''
     # get python version for different API functions prototype
     _python_version = list(map(int, cv2.__version__.split(".")))
     print("* Installed Python version :", cv2.__version__) if _verbose else None
         
         
     try:
-        
-        # read image resolution
+        # camera image resolution
         if "resolution" in process_param:
-            _w, _h = process_param["resolution"]
+            _w, _h = _resolution = process_param["resolution"]
         else:
             raise UndefinedParamError("Image resultion configurations are not defined")
 
-        
         # read camera parameters
         if all(key in process_param for key in ("fx","fy", "cx", "cy", "coeff_k1", "coeff_k2", "coeff_p1", "coeff_p2")):
             _fx = float(process_param["fx"])
@@ -306,9 +346,9 @@ def estimate(process_param, process_job):
                 raise ValueError("Image is empty")
                 
             undist_raw_gray = cv2.undistort(raw_gray, intrinsic_mtx, distorsion_mtx, None, newcamera_mtx) # undistortion by camera parameters
+            undist_raw_color = cv2.undistort(raw_color, intrinsic_mtx, distorsion_mtx, None, newcamera_mtx) # undistortion by camera parameters
             undist_raw_gray = cv2.bitwise_not(undist_raw_gray) # color inversion
-            undist_raw_color = cv2.cvtColor(undist_raw_gray, cv2.COLOR_GRAY2BGR) # for draw results
-            undist_color_result = cv2.cvtColor(undist_raw_gray, cv2.COLOR_GRAY2BGR) # for draw results
+            undist_color_result = undist_raw_color.copy()# cv2.cvtColor(undist_raw_color, cv2.COLOR_GRAY2BGR) # for draw results
             
             
             # find markers printed on reference wafer
@@ -378,8 +418,8 @@ def estimate(process_param, process_job):
                         str_world_pos = "on wafer : x=%2.2f,y=%2.2f"%(marker_centroids_on_wafer[idx][0], marker_centroids_on_wafer[idx][1])
                         #print("marker :",str_image_pos, str_world_pos) if _verbose else None
                         
-                        cv2.putText(undist_color_result, str_image_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
-                        cv2.putText(undist_color_result, str_world_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+                        cv2.putText(undist_color_result, str_image_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                        cv2.putText(undist_color_result, str_world_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
                         cv2.line(undist_color_result, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,255,0), 1, cv2.LINE_AA)
                         cv2.line(undist_color_result, (p[0],p[1]-10), (p[0],p[1]+10), (0,255,0), 1, cv2.LINE_AA)
                         
@@ -391,27 +431,19 @@ def estimate(process_param, process_job):
                         cv2.putText(undist_color_result, str_world_op_pos,(op_x+10, op_y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
                         cv2.line(undist_color_result, (op_x-10,op_y), (op_x+10,op_y), (0,0,255), 1, cv2.LINE_AA) # optical center
                         cv2.line(undist_color_result, (op_x,op_y-10), (op_x,op_y+10), (0,0,255), 1, cv2.LINE_AA)
-                
-                # testing for 3D to 2D
-                #np.array([[130.0, 210.0, 0.0]], dtype=float)
-                image_pts = obj_coord2pixel_coord([130.0, 210.0, 0.0], rVec, tVec, newcamera_mtx, distorsion_mtx, verbose=_verbose)
-                if _save_result:
-                    image_pts = image_pts.squeeze()
-                    str_pos = "x=%2.2f,y=%2.2f"%(image_pts[0], image_pts[1])
-                    image_ptsi = (image_pts.round().astype(int))
-                    cv2.putText(undist_color_result, str_pos,(image_ptsi[0]+10, image_ptsi[1]+20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
-                    cv2.line(undist_color_result, (image_ptsi[0]-10,image_ptsi[1]), (image_ptsi[0]+10,image_ptsi[1]), (0,255,255), 1, cv2.LINE_AA)
-                    cv2.line(undist_color_result, (image_ptsi[0],image_ptsi[1]-10), (image_ptsi[0],image_ptsi[1]+10), (0,255,255), 1, cv2.LINE_AA)
                     
 
+                # forktip detection ([upper-left(x,y), bottom-right(x,y), confidence, 0])
+                roi = detect_forktip(weights=_forktip_model, source=src_image, imgsz=_resolution, conf_thres=_forktip_roi_confidence)
+                if _save_result:
+                    for bb in roi:
+                        cv2.rectangle(undist_color_result, (int(bb[0]), int(bb[1])),(int(bb[2]), int(bb[3])), (0,255,0), 1)
+                        cv2.putText(undist_color_result, "End-Effector ROI",(int(bb[0]), int(bb[1])-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                        
                 # finally save image
                 if _save_result:
                     cv2.imwrite(str(_working_path / pathlib.Path("out_"+filename)), undist_color_result)
-
-                # forktip detection
-                fork_roi = forktip_detection(fork_detection_model, undist_raw_color, _save_result)
-                #if len(fork_roi): #if found
-                    # compute PCA to get the principal axis
+                
                     
                 # for test if image can be extracted by detection
                 roi_image_path = str(_working_path / pathlib.Path("test_roi.png"))
@@ -422,26 +454,29 @@ def estimate(process_param, process_job):
                     if roi_image.shape[2]==3: # if color image
                         roi_color = roi_image.copy()
                         roi_gray = cv2.cvtColor(roi_color, cv2.COLOR_BGR2GRAY)
-                        roi_bw = cv2.bitwise_not(roi_gray)
-                        _, roi_bw = cv2.threshold(roi_bw, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                        #roi_bw = cv2.bitwise_not(roi_gray)
+                        #_, roi_bw = cv2.threshold(roi_bw, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
                         
-                        img_sobel_x = cv2.Sobel(roi_bw, cv2.CV_64F, 1, 0, ksize=3)
-                        img_sobel_x = cv2.convertScaleAbs(img_sobel_x)
-                        img_sobel_y = cv2.Sobel(roi_bw, cv2.CV_64F, 0, 1, ksize=3)
-                        img_sobel_y = cv2.convertScaleAbs(img_sobel_y)
-                        img_sobel = cv2.addWeighted(img_sobel_x, 1, img_sobel_y, 1, 0)
+                        #patch_blur = cv2.GaussianBlur(roi_bw, (3, 3), 0)
+                        image_edge = canny_auto(roi_gray)
+                        cv2.imwrite("test_roi_edge.png", image_edge)
                         
                         # find hough line
-                        rho, theta, thresh = 2, np.pi/180, 400
-                        lines = cv2.HoughLines(img_sobel, rho, theta, thresh)
+                        rho, theta, thresh = 1, np.pi/180, 100
+                        #lines = cv2.HoughLines(image_edge, rho, theta, thresh)
+                        lines = cv2.HoughLines(image_edge, rho, theta, thresh, None, 0, 0)
+                        #lines = cv2.HoughLinesP(image_edge, rho, theta, thresh, 100, 20)
+                        #cv2.HoughLinesP()
                         for line in lines:
                             r,theta = line[0]
-                            tx, ty = np.cos(theta), np.sin(theta)
-                            x0, y0 = tx*r, ty*r
-                            #cv2.circle(roi_image_show, (abs(x0), abs(y0)), 3, (0,0,255), -1)
-                            x1, y1 = int(x0 + w*(-ty)), int(y0 + h * tx)
-                            x2, y2 = int(x0 - w*(-ty)), int(y0 - h * tx)
-                            cv2.line(roi_image_show, (x1, y1), (x2, y2), (0,255,0), 1)
+                            if theta<100*np.pi/180:
+                                tx, ty = np.cos(theta), np.sin(theta)
+                                print("R : ", r, ", Theta :", theta*180/np.pi)
+                                x0, y0 = tx*r, ty*r
+                                #cv2.circle(roi_image_show, (abs(x0), abs(y0)), 3, (0,0,255), -1)
+                                x1, y1 = int(x0 + w*(-ty)), int(y0 + h * tx)
+                                x2, y2 = int(x0 - w*(-ty)), int(y0 - h * tx)
+                                cv2.line(roi_image_show, (x1, y1), (x2, y2), (0,255,0), 1)
 
                         cv2.imwrite("test_roi_r.png", roi_image_show)
                 else:
