@@ -442,45 +442,22 @@ def estimate(process_param, process_job):
                     
                     # estimate object coord.
                     for p in selected_intersect_pt:
-                        pos_2d = np.array([p[0], p[1]], dtype=np.double).reshape(1,-1)
-                        pos_3d = pixel_coord2obj_coord(pos_2d, rVec, tVec, newcamera_mtx, distorsion_mtx)
-                        print("3d pts:", pos_3d)
-                        
-                        rvec_matrix = R[0]
-                        rmat = np.matrix(rvec_matrix)
-                        tmat = np.matrix(tVec)
-                        print(tmat)
-                        world_point = rmat ** -1 * ([[850], [403], [1]] - tmat)
+                        pc = np.array([p[0], p[1], 1], dtype=np.float64)
+                        wc = np.dot(np.linalg.inv(intrinsic_mtx), pc)
+                        xyz_coords = cv2.convertPointsFromHomogeneous(wc.reshape(1, 1, 3))
+                        wx = _x_direction*(ptVec[0] - xyz_coords[0, 0, 0]*_laser_distance[fid])
+                        wy = _y_direction*(ptVec[1] - xyz_coords[0, 0, 1]*_laser_distance[fid])
+                        p_wc = np.array([wx,wy], dtype=np.double).squeeze()
+                        print(p, p_wc[0], p_wc[1])
                     
-                    if _save_result:
-                        for p in selected_intersect_pt:
+                        if _save_result:
+                            print(p, p_wc)
                             cv2.circle(undist_raw_color, p, radius=2, color=(0,0,255), thickness=7)
-                            str_image_p_pos = "P(%d, %d)"%(p[0], p[1])
+                            str_image_p_pos = "P(image):%d, %d)"%(p[0], p[1])
+                            str_world_u_pos = "P(world):(%2.2f, %2.2f)"%(p_wc[0], p_wc[1])
                             cv2.putText(undist_raw_color, str_image_p_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                            cv2.putText(undist_raw_color, str_world_u_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
-                        
-                    # for p in selected_intersect_pt:
-                    #     str_image_is_pos = "IS_img : (%d, %d)"%(intersect_pt[0], intersect_pt[1])
-                        
-                    #     # for testing 3d-2d
-                    #     pos_3d = np.array([85.0, -117.0, 0.9], dtype=np.double).reshape(1,-1)
-                    #     pos_2d, _ = obj_coord2pixel_coord(pos_3d, rVec, tVec, newcamera_mtx, distorsion_mtx)
-                    #     if _save_result:
-                    #         p_2d = pos_2d.round().astype(int)
-                    #         p_3d = pos_3d.squeeze()
-                    #         str_image_u_pos = "P(image): %2.2f,%2.2f"%(p_2d[0], p_2d[1])
-                    #         str_world_u_pos = "P(world): %2.2f,%2.2f"%(p_3d[0], p_3d[1])
-                    #         cv2.putText(undist_raw_color, str_image_u_pos,(p_2d[0]+10, p_2d[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                    #         cv2.putText(undist_raw_color, str_world_u_pos,(p_2d[0]+10, p_2d[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                    #         cv2.line(undist_raw_color, (p_2d[0]-10,p_2d[1]), (p_2d[0]+10,p_2d[1]), (0,255,255), 1, cv2.LINE_AA)
-                    #         cv2.line(undist_raw_color, (p_2d[0],p_2d[1]-10), (p_2d[0],p_2d[1]+10), (0,255,255), 1, cv2.LINE_AA)
-                            
-                            
-                            
-                        # for testing 2d-3d
-                        #po_2d = np.array([849.91, 403.18], dtype=np.double).reshape(1,-1)
-                        #pos_2d = [674.99, 488.38]
-                        #pos_3d = pixel_coord2obj_coord(pos_2d, rVec, tVec, newcamera_mtx, distorsion_mtx)
                                     
                             
                                     
