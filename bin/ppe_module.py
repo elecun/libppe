@@ -448,25 +448,21 @@ def estimate(process_param, process_job):
                         wx = _x_direction*(ptVec[0] - xyz_coords[0, 0, 0]*_laser_distance[fid])
                         wy = _y_direction*(ptVec[1] - xyz_coords[0, 0, 1]*_laser_distance[fid])
                         p_wc = np.array([wx,wy], dtype=np.double).squeeze()
-                        print(p, p_wc[0], p_wc[1])
                     
                         if _save_result:
-                            print(p, p_wc)
                             cv2.circle(undist_raw_color, p, radius=2, color=(0,0,255), thickness=7)
                             str_image_p_pos = "P(image):%d, %d)"%(p[0], p[1])
                             str_world_u_pos = "P(world):(%2.2f, %2.2f)"%(p_wc[0], p_wc[1])
                             cv2.putText(undist_raw_color, str_image_p_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
                             cv2.putText(undist_raw_color, str_world_u_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
-                                    
-                            
-                                    
-                    
-                    
     
                 # finally save image
                 if _save_result:
                     cv2.imwrite(os.path.splitext(image_path)[0]+"_out.png", undist_raw_color)
+                    
+                    
+                
                 
                 # final outputs
                 p_dic = {}
@@ -483,7 +479,9 @@ def estimate(process_param, process_job):
                 p_dic["effector_p"] = 0.0
                 p_dic["effector_w"] = 0.0
                 p_dic["distance"] = 0.0
+                p_dic["line_features"] = []
                 estimate_result[_image_filenames[fid]] = p_dic
+                print(estimate_result)
             else:
                 print("Not enough markers are detected")
         

@@ -638,7 +638,8 @@ def estimate(process_param, process_job):
                 p_dic["effector_z"] = 0.0
                 p_dic["effector_r"] = 0.0
                 p_dic["effector_p"] = 0.0
-                p_dic["effector_w"] = 0.0
+                p_dic["effector_w"] = 1.0
+                p_dic["intersect_pts"] = []
                 p_dic["distance"] = 0.0
                 estimate_result[filename] = p_dic
             else:
