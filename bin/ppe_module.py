@@ -455,7 +455,14 @@ def estimate(process_param, process_job):
                             str_world_u_pos = "P(world):(%2.2f, %2.2f)"%(p_wc[0], p_wc[1])
                             cv2.putText(undist_raw_color, str_image_p_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
                             cv2.putText(undist_raw_color, str_world_u_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-
+                            print("- Distance : ", math.dist([0,0], p_wc))
+                            
+                            # center line
+                            org_3d = np.array([0.0, 0.0, 0.0], dtype=np.double).reshape(1,-1)
+                            org_2d, _ = obj_coord2pixel_coord(org_3d, rVec, tVec, newcamera_mtx, distorsion_mtx)
+                            p_center = org_2d.round().astype(int)
+                            cv2.line(undist_raw_color, p, p_center, (255,0,255), 1, cv2.LINE_AA)
+                        
     
                 # finally save image
                 if _save_result:
