@@ -455,13 +455,25 @@ def estimate(process_param, process_job):
                             str_world_u_pos = "P(world):(%2.2f, %2.2f)"%(p_wc[0], p_wc[1])
                             cv2.putText(undist_raw_color, str_image_p_pos,(p[0]+10, p[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
                             cv2.putText(undist_raw_color, str_world_u_pos,(p[0]+10, p[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                            print("- Distance : ", math.dist([0,0], p_wc))
+                            p_dist = math.dist([0,0], p_wc)
+                            print("- Distance : ", p_dist)
+                            print("P(wc)", p_wc)
+                            print("P(px)", p)
                             
                             # center line
                             org_3d = np.array([0.0, 0.0, 0.0], dtype=np.double).reshape(1,-1)
                             org_2d, _ = obj_coord2pixel_coord(org_3d, rVec, tVec, newcamera_mtx, distorsion_mtx)
                             p_center = org_2d.round().astype(int)
-                            cv2.line(undist_raw_color, p, p_center, (255,0,255), 1, cv2.LINE_AA)
+                            #cv2.line(undist_raw_color, p, p_center, (255,0,255), 1, cv2.LINE_AA)
+                            
+                            # outer line
+                            if p_dist>_wafer_diameter/2:
+                                th_rad = math.atan(p_wc[1]/p_wc[0])
+                                print("theta", p_wc, math.degrees(th_rad))
+                                p_outer_wc = np.array([_wafer_diameter/2*math.cos(th_rad), _wafer_diameter/2*sin(th_rad), 0], dtype=np.double).reshape(1,-1)
+                                p_outer_px, _ = obj_coord2pixel_coord(p_outer_wc, rVec, tVec, newcamera_mtx, distorsion_mtx)
+                                p_outer_pts = p_outer_px.round().astype(int)
+                                # cv2.line(undist_raw_color, p, p_outer_pts, (0,255,0), 2, cv2.LINE_AA)
                         
     
                 # finally save image
