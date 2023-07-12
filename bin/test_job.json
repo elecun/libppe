@@ -2,10 +2,14 @@
     "use_camera":0,
     "verbose":1,
     "save_result":1,
-    "x_direction":-1.0,
-    "y_direction":1.0,
+    "x_direction":1.0,
+    "y_direction":-1.0,
     "yaw_direction":-1.0,
-    "path":"/home/libppe/bin/testset/",
-    "files":["pos_0.png","pos_1.png"],
-    "laser_wafer_distance":[100.0, 99.0]
+    "forktip_model":"forktip_type1.pt",
+    "forktip_roi_confidence":0.5,
+    "forktip_roi_padding":[0, 0, 20, 0],
+    "forktip_line_select":100,
+    "path":"testset/effector/",
+    "files":["test1.png"],
+    "laser_wafer_distance":[100.0]
 }
